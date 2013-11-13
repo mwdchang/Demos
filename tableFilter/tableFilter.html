@@ -1,0 +1,63 @@
+<html>
+<head>
+<title> Filtering :: Demos </title>
+<link rel="stylesheet" href="http://netdna.bootstrapcdn.com/bootstrap/3.0.2/css/bootstrap.min.css">
+<script src="http://d3js.org/d3.v3.min.js" charset="utf-8"></script>
+<script>
+</script>
+</head>
+<body style="margin:2%">
+   <section>
+   <p>Just a simple demo of filtering table data, with D3 and Bootstrap.</p>
+   <br><label>Search: </label>&nbsp;<input id="filter" type="text" onKeyUp="doFilter()"></input><br>
+   <table class="table table-striped">
+      <thead>
+         <th>Name</th>
+         <th>Position</th>
+         <th>Batting Average</th>
+         <th>Home Runs</th>
+         <th>Runs Batted In</th>
+      </thead>
+      <tbody id="table_data">
+      </tbody>
+   </table>
+   </section>
+</body>
+<script>
+   function doFilter() {
+      var txt = d3.select("#filter").node().value;
+      var re = new RegExp(txt, "i");
+      console.log("Text:", txt);
+
+      if (!txt || txt === '') {
+         d3.select("#table_data").selectAll("tr").style("display", "table-row");
+      } else {
+         d3.select("#table_data").selectAll("tr").filter(function(d) {
+            if (! d.name.match(re)) return 1;
+         }).style("display", "none");
+      }
+   }
+
+   var data = [
+   {name:"Miguel Cabera", pos:"3B", avg:".348", hr:44, rbi:137},
+   {name:"Joe Mauer", pos:"C", avg:".324", hr:11, rbi:47},
+   {name:"Mike Trout", pos:"CF", avg:".323", hr:27, rbi:97},
+   {name:"Adrian Beltre", pos:"3B", avg:".315", hr:30, rbi:92},
+   {name:"Robinson Cano", pos:"2B", avg:".314", hr:27, rbi:107}
+   ];
+
+   d3.select("#table_data")
+     .selectAll("tr")
+     .data(data)
+     .enter()
+     .append("tr")
+     .each(function(row) {
+        d3.select(this).append("td").text(row.name);
+        d3.select(this).append("td").text(row.pos);
+        d3.select(this).append("td").text(row.avg);
+        d3.select(this).append("td").text(row.hr);
+        d3.select(this).append("td").text(row.rbi);
+     });
+
+</script>
+</html>
