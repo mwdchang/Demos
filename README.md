@@ -1,3 +1,3 @@
-D3Demo
-=======
+Demos
+=====
 Demos and widgets
