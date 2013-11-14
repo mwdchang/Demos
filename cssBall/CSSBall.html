@@ -1,0 +1,107 @@
+<html>
+<head><title> CSSBall :: Demos </title>
+<script src="http://ajax.googleapis.com/ajax/libs/jquery/1.9.1/jquery.min.js" ></script>
+<style>
+#canvas {
+   -webkit-perspective: 800px;
+   -webkit-perspective-origin: 50% 200px;
+   -webkit-transform: rotateY(20deg) rotateX(20deg);
+   -webkit-transform-style: preserve-3d;
+}
+
+#cube {
+   position: relative;
+   margin: 0 auto;
+   height: 400px;
+   width: 400px;
+   -webkit-transition: -webkit-transform 1.5s ease;
+   -webkit-transform-style: preserve-3d;
+}
+
+
+.face {
+   position:absolute;
+   height:360px;
+   width:360px;
+   padding: 20px;
+   border: 25px double #000000;
+   border-radius:50%;
+   opacity:0.5;
+   border-color: rgb(45, 80, 150);
+}
+
+#cube .s1 {
+   -webkit-transform: rotateY(10deg);
+}
+
+#cube .s2 {
+   -webkit-transform: rotateY(40deg); 
+}
+
+#cube .s3 {
+   -webkit-transform: rotateY(70deg); 
+}
+
+#cube .s4 {
+   -webkit-transform: rotateY(100deg);
+}
+
+#cube .s5 {
+   -webkit-transform: rotateY(130deg);
+}
+
+#cube .s6 {
+   -webkit-transform: rotateY(160deg);
+}
+
+p {
+   font-family: Calibri;
+   font-size: 20px;
+   line-height: 145%; 
+}
+
+code {
+   border: 1 solid rgb(170, 170, 170);
+   border-radius: 4px;
+   background-color: rgb(200, 200, 200);
+   margin: 3px;
+   padding: 2px;
+}
+</style>
+</head>
+<body style="margin:5%">
+<p> A "3D" ball created with DIvs and CSS-transforms. <br> Use the <code>arrow keys</code> to rotate the ball</p>
+<div id="canvas"> 
+   <div id="cube" style="web">
+      <div class="face s1"></div>
+      <div class="face s2"></div>
+      <div class="face s3"></div>
+      <div class="face s4"></div>
+      <div class="face s5"></div>
+      <div class="face s6"></div>
+   </div>
+</div>
+
+<script>
+var xAngle = 0; yAngle = 0;
+document.addEventListener("keydown", function(evt) {
+   switch (evt.keyCode) {
+      case 37:
+         yAngle -= 60;
+         break;
+      case 38:
+         xAngle += 60;
+         break;
+      case 39:
+         yAngle += 60;
+         break;
+      case 40:
+         xAngle -= 60;
+         break;
+   };
+   document.getElementById("cube").style.webkitTransform = "rotateX(" + xAngle + "deg) rotateY("+yAngle+"deg)";
+}, false);
+
+</script>
+</body>
+</html>
