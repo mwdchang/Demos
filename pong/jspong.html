@@ -1,0 +1,350 @@
+<html>
+<head>
+<title>Pong :: Demos</title>
+<style>
+.ball {
+   position:absolute;
+   height:15;
+   width:15;
+   padding: 0px;
+   border-radius:50%;
+   opacity:0.8;   
+   background-color: #EE0000;
+}
+</style>
+<script src="http://d3js.org/d3.v3.min.js" charset="utf-8"></script>
+<script>
+
+var winWidth = window.innerWidth;
+var playArea; 
+var keyMap = {};
+var moveDist = 25;
+
+var updateHandle;
+
+var ball;
+var ballVelocity = 10;
+var dx,dy;
+
+var lapse = 50;
+var keyLock = 0;
+
+
+var paddleLeft, paddleRight;
+var scoreLeft=0, scoreRight = 0;
+
+var globalScoreLeft=0, globalScoreRight=0;
+var host = "http://localhost:8000/pong";
+
+var label_scoreRight;
+var label_scoreLeft;
+var label_gscoreRight;
+var label_gscoreLeft;
+
+
+// Try to intersect P2P1 and P4P3
+function lineIntersect( p1, p2, p3, p4) {
+   var UA_numerator = ((p4.x - p3.x)*(p1.y - p3.y) - (p4.y - p3.y)*(p1.x - p3.x));
+   var UB_numerator = ((p2.x - p1.x)*(p1.y - p3.y) - (p2.y - p1.y)*(p1.x - p3.x));
+   var denominator  = ((p4.y - p3.y)*(p2.x - p1.x) - (p4.x - p3.x)*(p2.y - p1.y)); 
+   
+   // Incidental or parallel
+   if ( Math.abs(denominator) <= 0.00001 ) return false;
+   
+   var UA = UA_numerator / denominator;
+   var UB = UB_numerator / denominator;
+   
+   if (UA >= 0 && UA <= 1 && UB >=0 && UB <= 1) {
+      /*
+      var newX = p1.x + UA*(p2.x - p1.x);
+      var newY = p1.y + UA*(p2.y - p1.y);
+      */
+      
+      return true;
+   }
+   return false; 
+}
+
+
+// Gen random number to create unit vectors
+function resetBall() {
+   var tx = Math.random()*4-2;
+   var ty = Math.random()*4-2;
+
+   // Seed it so it os more "horizontally friendly"
+   tx *= 2;
+
+   dx = tx / Math.sqrt( tx*tx + ty*ty);
+   dy = ty / Math.sqrt( tx*tx + ty*ty);
+
+
+   d3.select("#ball").remove();
+   ball = d3.select("#playArea").append("div")
+      .attr("id", "ball")
+      .attr("class", "ball")
+   ;
+
+   ballVelocity = 10;
+
+   d3.select("#ball")
+      .data( [ {x:400, y:400}])
+      .style("top", function(d) { return d.x + "px";})
+      .style("left", function(d) { return d.y + "px";})
+}
+
+
+function resetGame() {
+   resetBall();
+   clearInterval( updateHandle );
+
+   d3.select("#playArea").append("div").text("Get Ready !!!")
+     .style("position", "absolute")
+     .style("font-size", "60px") 
+     .style("font-family", "Verdana")
+     .style("top", "50px")
+     .style("left", "200px")
+     .transition().duration(3000)
+     .style("opacity", 0)
+     .each("end", function(d) { d3.select(this).remove(); });
+
+   
+   label_scoreLeft.text(scoreLeft);
+   label_scoreRight.text(scoreRight);
+
+
+
+   setTimeout( function() { 
+      updateHandle = setInterval( update, lapse );
+   }, 3000);
+}
+
+
+
+function init() {
+   // Create a playable area
+   playArea = d3.select("body").append("div")
+      .attr("id", "playArea")
+      .style("position", "absolute")
+      .style("left", winWidth/2 - 400 + "px")
+      .style("width", "800px")
+      .style("height", "600px")
+      .style("background-color", "#EEEEEE")
+   ;
+
+   // Create the paddles
+   paddleLeft = d3.select("#playArea").append("div")
+      .data( [ {"y": 10} ] )
+      .attr("id", "paddleLeft")
+      .style("position", "absolute")
+      .style("left", 0 + "px")
+      .style("width", "20px")
+      .style("height", "100px")
+      .style("top", function(d) {return d.y + "px"; })
+      .style("background-color", "#336699")
+   ;
+   paddleRight = d3.select("#playArea").append("div")
+      .data( [ {"y": 10} ] )
+      .attr("id", "paddleRight")
+      .style("position", "absolute")
+      .style("left", 800-20 + "px")
+      .style("width", "20px")
+      .style("height", "100px")
+      .style("top", function(d) { return d.y + "px";})
+      .style("background-color", "#336699")
+   ;
+
+   // Create scoring labels
+   d3.select("#scoreLeft").remove();
+   d3.select("#scoreRight").remove();
+   d3.select("#gscoreLeft").remove();
+   d3.select("#gscoreRight").remove();
+
+   label_scoreLeft = d3.select("#playArea").append("div")
+     .attr("id", "scoreLeft")
+     .style("position", "absolute")
+     .style("font-size", "40px")
+     .style("font-family", "Verdana")
+     .style("top", "20px")
+     .style("left", "30px")
+     .style("opacity", 0.75)
+     .text( scoreLeft )
+   ;   
+
+   label_scoreRight = d3.select("#playArea").append("div")
+     .attr("id", "scoreRight")
+     .style("position", "absolute")
+     .style("font-size", "40px")
+     .style("font-family", "Verdana")
+     .style("top", "20px")
+     .style("left", "740px")
+     .style("opacity", 0.75)
+     .text( scoreRight)
+   ;   
+
+
+
+   label_gscoreLeft = d3.select("#playArea").append("div")
+     .attr("id", "gscoreLeft")
+     .style("position", "absolute")
+     .style("font-size", "40px")
+     .style("font-family", "Verdana")
+     .style("top", "550px")
+     .style("left", "30px")
+     .style("opacity", 0.75)
+     .style("color", "#FF00FF")
+   ;   
+
+   label_gscoreRight = d3.select("#playArea").append("div")
+     .attr("id", "gscoreRight")
+     .style("position", "absolute")
+     .style("font-size", "40px")
+     .style("font-family", "Verdana")
+     .style("top", "550px")
+     .style("left", "740px")
+     .style("opacity", 0.75)
+     .style("color", "#FF00FF")
+   ;   
+
+
+   assignEvents();
+
+   resetGame();
+}
+
+
+function assignEvents() {
+   document.addEventListener("keydown", function(evt) {
+
+      switch (evt.keyCode) {
+         case 38: // Up
+         case 40: // Down
+         case 87: // w
+         case 83: // s
+            keyMap[ evt.keyCode ] = 1;
+            event.preventDefault();
+            break;
+      }
+   }, false);
+
+   document.addEventListener("keyup", function(evt) {
+       switch (evt.keyCode) {
+         case 38: // Up
+         case 40: // Down
+         case 87: // w
+         case 83: // s
+            keyMap[ evt.keyCode ] = 0;
+            event.preventDefault();
+            break;
+      }
+   }, false);
+
+
+}
+
+function update() {
+
+
+   // Update ball
+   d3.select("#ball").transition().duration(40)
+     .style("top", function(d) {
+        d.y += dy*ballVelocity;
+
+        // Check against playing area
+        if (d.y <= 15 || d.y >= 585) dy = -dy;
+        return d.y + "px";
+     })
+     .style("left", function(d) {
+        d.x += dx*ballVelocity;
+
+
+        // Check against paddles
+        var tempy;
+        
+        tempy = d3.select("#paddleRight").datum().y;
+        if (lineIntersect( {x:d.x, y:d.y}, {x:d.x + dx*ballVelocity, y:d.y + dy*ballVelocity}, {x:780, y:tempy}, {x:780, y:tempy+100}) == true) {
+              keyLock = 1;
+              d3.select("#paddleRight").transition().duration(50).style("background-color", "#FF9900")
+                .each("end", function(d) {
+                   d3.select(this).transition().duration(50).style("background-color", "#336699").each("end", function() {
+                      keyLock = 0;
+                   });
+              });
+              dx = -dx;
+              ballVelocity += 1.0;
+              if (ballVelocity >= 15) ballVelocity = 15;
+        }
+        if (d.x > 800) {
+           
+           scoreLeft ++;
+           resetGame();
+        }
+                          
+
+        tempy = d3.select("#paddleLeft").datum().y;
+        if (lineIntersect( {x:d.x, y:d.y}, {x:d.x + dx*ballVelocity, y:d.y + dy*ballVelocity}, {x:20, y:tempy}, {x:20, y:tempy+100}) == true) {
+              keyLock = 1;
+              d3.select("#paddleLeft").transition().duration(50).style("background-color", "#FF9900")
+                .each("end", function(d) {
+                   d3.select(this).transition().duration(50).style("background-color", "#336699").each("end", function() {
+                      keyLock = 0;
+                   });
+              });
+              dx = -dx;
+              ballVelocity += 1.0;
+              if (ballVelocity >= 15) ballVelocity = 15;
+        }
+        if ( d.x < 0) {
+
+           scoreRight ++;
+           resetGame();
+        }
+
+        return d.x + "px";
+     });
+
+   // Update input
+   for (var key in keyMap) {
+
+      if (keyMap[key] == 0 || keyLock == 1) continue;
+
+      if (key == 38) { // Up
+            d3.select( "#paddleRight").transition().duration(40)
+              .style("top", function(d) { 
+                 d.y -= moveDist;
+                 if (d.y <= 0) d.y = 0;
+                 return d.y + "px";
+            });
+      } else if ( key == 40) { // Down
+            d3.select( "#paddleRight").transition().duration(40)
+              .style("top", function(d) { 
+                 d.y += moveDist;
+                 if (d.y >= 500) d.y = 500;
+                 return d.y + "px";
+            });
+      } else if (key ==  87) { // w
+             d3.select( "#paddleLeft").transition().duration(40)
+              .style("top", function(d) { 
+                 d.y -= moveDist;
+                 if (d.y <= 0) d.y = 0;
+                 return d.y + "px";
+            });
+            break;
+       } else if (key ==  83) { // s
+             d3.select( "#paddleLeft").transition().duration(40)
+              .style("top", function(d) { 
+                 d.y += moveDist;
+                 if (d.y >= 500) d.y = 500;
+                 return d.y + "px";
+            });
+            break;
+      };
+   }
+
+}
+
+
+</script>
+</head>
+<body onLoad="init();">
+</body>
+</html>
