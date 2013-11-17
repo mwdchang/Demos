@@ -1,0 +1,122 @@
+<html>
+<head>
+<title>D3 Heatmap Test</title>
+<script src="http://d3js.org/d3.v3.min.js"></script>
+</head>
+<body style="margin:5%">
+<p> Simple heatmap test. Hover over individual cell to see its value. <br>
+hover over each project to see a more comparable view. </p>
+<br>
+<div id="canvas"></div>
+</body>
+
+<script>
+
+var cellSize =35;
+
+var data = [ [1, 2, 3, 2, 6], 
+             [3, 5, 6, 8, 4], 
+             [3, 4, 0, 9, 3], 
+             [1, 7, 4, 3, 8], 
+             [2, 8, 1, 8, 1] 
+           ];
+
+var svg = d3.select("#canvas")
+            .append("svg")
+            .attr("width", 500)
+            .attr("height", 500);
+
+var label = svg.append("text")
+               .attr("class", "labelClass")
+               .attr("transform", "translate("+5+","+(40+data.length*cellSize)+")")
+               .style("font-family", "Verdana")
+               .style("font-size", "20px");
+
+
+var highlight = function() {
+   d3.select(this).style("stroke", "#0088FF").style("stroke-width", 4);
+   d3.selectAll(".labelClass").text( "Value is : " + d3.select(this).datum().value );
+}
+
+var dehighlight = function() {
+   d3.select(this).style("stroke", null);
+   d3.selectAll(".labelClass").text( "" );
+}
+
+var showbar = function(idx) {
+   bars.data(data[idx])
+       .transition()
+       .duration(200)
+       .attr("y", function(d) { return -d*5; })
+       .attr("height", function(d){ return d*5; });
+}
+
+var hidebar = function(idx) {
+   bars.data(data[idx])
+       .transition()
+       .duration(200)
+       .attr("y", function(d) { return 0; })
+       .attr("height", function(d){ return 0; });
+}
+
+
+var test = svg.selectAll("g")
+            .data(data)
+            .enter()
+            .append("g") // Control group
+            .attr("transform", function(d, i) {
+               return "translate(" + 0 + "," + cellSize*i + ")";
+            })
+            .each(function(d, i) {
+                  d3.select(this)
+                    .selectAll("rect")
+                    .data(d.map(function(d) {
+                       return {
+                          value: d
+                       }
+                    }))
+                    .enter()
+                    .append("rect")
+                    .attr("width", cellSize-1)
+                    .attr("height", cellSize-1)
+                    .attr("x", function(d, i) { return i*cellSize; } )
+                    .attr("fill", function(d) {
+                       return d3.rgb( 55*d.value/10, 50+200*d.value/15, 0);
+                    })
+                    .on("mouseover", highlight)
+                    .on("mouseout", dehighlight);
+            });
+
+var ylabel = svg.append("g")
+                .selectAll("text")
+                .data(data)
+                .enter()
+                .append("text")
+                .attr("x", data[0].length*cellSize+5)
+                .attr("y", function(d, i) { return 15+i*cellSize; })
+                .style("font-family", "Verdana")
+                .style("font-size", "10px")
+                .text(function(d, i) { return "Project " + i; })
+                .on("mouseover", function(d, i) { 
+                   d3.select(this).style("font-weight", "bold");
+                   showbar(i); 
+                })
+                .on("mouseout", function(d, i) { hidebar(i); 
+                   d3.select(this).style("font-weight", "normal");
+                });
+
+
+var bars = svg.append("g")
+              .attr("transform", "translate(0, 250)")
+              .selectAll("rect")
+              .data( data[0] )
+              .enter()
+              .append("rect")
+              .attr("width", cellSize-1)
+              .attr("height", 0)
+              .attr("x", function(d, i) { return i*cellSize; } )
+              .attr("fill", "#336699");
+                 
+
+</script>
+</html>
