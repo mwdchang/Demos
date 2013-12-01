@@ -1,0 +1,65 @@
+<html>
+<head>
+<title>Sphere::Demos</title>
+<script src="http://cdnjs.cloudflare.com/ajax/libs/three.js/r61/three.min.js"></script>
+</head>
+<body style="margin:5%">
+<p> Testing out <em>three.js</em> </p>
+<div id="container"></div>
+</body>
+<script>
+
+// Scene size
+var width = 400, height = 400;
+
+// Perspective
+var angle = 45, aspect = width/height;
+var near = 0.1, far = 1000;
+
+
+var renderer = new THREE.WebGLRenderer();
+var camera = new THREE.PerspectiveCamera(
+   angle, aspect, near, far
+);
+
+var scene = new THREE.Scene();
+scene.add(camera);
+camera.position.y = 400;
+camera.position.z = 600;
+camera.lookAt(new THREE.Vector3(0, 0, -600));
+
+console.log(camera);
+
+renderer.setSize(width, height);
+
+document.getElementById("container").appendChild(
+   renderer.domElement
+);
+
+var radius = 50, segments = 32, slices = 32;
+var sphereMaterial =  new THREE.MeshLambertMaterial({
+   color: 0xAA00AA
+});
+
+for (var i=0; i < 5; i++) {
+   var sphere = new THREE.Mesh(
+      new THREE.SphereGeometry(radius, segments, slices),
+      sphereMaterial
+   );
+   sphere.position.z = i * -100;
+   sphere.position.x = i * 50;
+
+   scene.add(sphere);
+}
+
+var light = new THREE.PointLight(0xFFFFFF);
+light.position.x = 100;
+light.position.y = 100;
+light.position.z = 200;
+scene.add(light);
+   
+
+renderer.render(scene, camera);
+
+</script>
+</html>
