@@ -1,0 +1,99 @@
+<html>
+<head> 
+<title>D3 Axis Example</title>
+<script src="http://d3js.org/d3.v3.min.js" charset="utf-8"></script>
+<style>
+body {
+   font-family: Tahoma, Verdana;
+   font-size: 11px;
+}
+
+.axis path,
+.axis line {
+    fill: none;
+    stroke: black;
+    shape-rendering: crispEdges;
+}
+
+
+</style>
+</head>
+<body>
+</body>
+<script>
+var width = 800,
+    height = 400,
+    padding = 100;
+
+var vis = d3.select("body").append("svg:svg")
+   .attr("width", width)
+   .attr("height", height);
+        
+// define the y scale  (vertical)
+var yScale = d3.scale.linear()
+   .domain([0, 100])  
+   .range([height - padding, padding]);   
+  
+// define the x scale (horizontal)
+var mindate = new Date(2012,0,1),
+    maxdate = new Date(2012,0,31);
+    
+var xScale = d3.time.scale()
+   .domain([mindate, maxdate])    // values between for month of january
+   .range([padding, width - padding * 2]);   // map these the the chart width = total width minus padding at both sides
+  
+
+// define the y axis
+var yAxis = d3.svg.axis()
+    .orient("left")
+    .scale(yScale);
+
+// define the y axis
+var xAxis = d3.svg.axis()
+    .orient("bottom")
+    .scale(xScale);
+    
+// draw y axis with labels and move in from the size by the amount of padding
+vis.append("g")
+    .attr("transform", "translate("+padding+",0)")
+    .attr("class", "axis")
+    .call(yAxis);
+
+// draw x axis with labels and move to the bottom of the chart area
+vis.append("g")
+    .attr("class", "axis xaxis")  
+    .attr("transform", "translate(0," + (height - padding) + ")")
+    .call(xAxis);
+    
+vis.selectAll(".xaxis text")  // select all the text elements for the xaxis
+   .attr("transform", function(d) {
+      return "translate(" + this.getBBox().height*-2 + "," + this.getBBox().height + ")rotate(-45)";
+   });
+    
+
+var dataset = [
+   [ new Date(2012, 0, 1), 25],
+   [ new Date(2012, 0, 3), 15],
+   [ new Date(2012, 0, 9), 35],
+   [ new Date(2012, 0, 31), 25],
+   [ new Date(2012, 0, 13), 15],
+   [ new Date(2012, 0, 19), 35]
+];
+
+// draw the data points
+vis.selectAll("circle")
+   .data(dataset)
+   .enter()
+   .append("circle")
+   .attr("cx", function(d) {
+      return xScale(d[0]);
+   })
+   .attr("cy", function(d) {
+      return yScale(d[1]);
+   })
+   .attr("r", function(d) {
+      return "5px";
+   });
+
+</script>
+</html>
