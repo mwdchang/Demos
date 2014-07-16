@@ -1,0 +1,66 @@
+<html>
+<head>
+   <title>Testing PIXI</title>
+   <script src="http://cdnjs.cloudflare.com/ajax/libs/pixi.js/1.6.0/pixi.dev.js"></script>
+</head>  
+<body>
+<script>
+var renderer, graphics, stage;   
+stage = new PIXI.Stage(0x000000, true);
+renderer = new PIXI.WebGLRenderer(800, 600);
+graphics = new PIXI.Graphics();
+document.body.appendChild(renderer.view);
+
+var cx = 400, cy = 300;
+var counter1 = 0;
+var counter2 = 0;
+var counter3 = 0;
+
+
+stage.addChild(graphics);
+
+renderer.render(stage);
+
+requestAnimFrame(animate)
+
+function animate() {
+
+
+
+   graphics.clear();
+
+   var cirs = 11;
+   for (var i=0; i < cirs; i++) {
+      var step = 360/cirs;
+      var ox = 100*Math.cos(( counter1+i*step)*Math.PI/180.0); 
+      var oy = 100*Math.sin(( counter1+i*step)*Math.PI/180.0); 
+      /*
+      graphics.beginFill(0xFFFF0B, Math.abs(counter1-180)/180);
+         graphics.drawCircle(ox+cx, oy+cy, 10);
+      graphics.endFill();
+      */
+
+      for (var j=0; j < 16; j++) {
+         var step = 16+2*i;
+         var ox2 = 60*Math.cos( (counter2+j*step)*Math.PI/180.0); 
+         var oy2 = 60*Math.sin( (counter2+j*step)*Math.PI/180.0); 
+         graphics.beginFill(0xFF00BB, j*0.05);
+         graphics.drawCircle(ox2+(cx+ox), oy2+(cy+oy), 4+j*0.25);
+         graphics.endFill();
+      }
+
+   }
+
+
+   renderer.render(stage);
+   requestAnimFrame(animate)
+
+   counter1 += 1;
+   if (counter1 >= 360) counter1 = 0;
+   counter2 += 5;
+   if (counter2 >= 360) counter2 = 0;
+}
+
+</script>
+</body>
+</html>
