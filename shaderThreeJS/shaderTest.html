@@ -83,8 +83,9 @@
             // I can't remember where I got this formula
             // but it seems to work rather nicely ....
             vec2 p = gl_FragCoord.xy;
-            float midx = 650.0/2.0;
-            float midy = 650.0/2.0;
+            float midx = resolution.x;
+            float midy = resolution.y;
+
 
             float val = 15.0 + 8.0 * (
               (1.0 + sin (
@@ -92,7 +93,9 @@
               + (sin (p.y / varB))
               + (cos (hyp(p.x - midx, p.y - midy)/time)))
             ));
-				gl_FragColor=vec4(0.25, val/110.0, val/40.0, 0.8);
+
+            
+				gl_FragColor=vec4(time/10.0, val/110.0, val/40.0, 1);
 			}
 
 		</script>
@@ -102,8 +105,8 @@
 			var container;
 			var camera, scene, renderer;
 			var uniforms;
-         var winSize = 650;
-         var delta = 0.05;
+         var winSize = 200;
+         var delta = 0.02;
 
 			init();
 			animate();
@@ -147,11 +150,8 @@
             renderer.setSize(winSize, winSize);
 				container.appendChild( renderer.domElement );
 
-
 				onWindowResize();
-
 				window.addEventListener( 'resize', onWindowResize, false );
-
 			}
 
 			function onWindowResize( event ) {
