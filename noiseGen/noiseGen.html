@@ -1,0 +1,67 @@
+<html>
+<head>
+<script src="d3.v3.min.js" charset="utf-8"></script>
+<script src="noiseGen.js"></script>
+</head>
+<body> 
+<svg id="canvas"></svg> 
+</body>
+<script>
+
+var w = 200;
+var h = 200;
+var w_2 = w * 0.5;
+var h_2 = h * 0.5;
+
+d3.select("#canvas").attr("width", w).attr("height", h);
+
+function cool(x, y, rings, turb) {
+   var dist = Math.sqrt( (x - 100)*(x - 100) + (y - 100)*(y - 100));
+   return Math.sin( Math.PI * dist * rings) 
+        + Math.cos( Math.PI * dist * rings);
+}
+
+function weird_circle(x, y, rings, turb) {
+   var dist = Math.sqrt( (x - 100)*(x - 100) + (y - 100)*(y - 100));
+   return Math.cos( (Math.PI * rings/(dist-80))) + turb * perlin_2D(x, y); 
+}
+
+function marble(x, y, xPeriod, yPeriod, power) {
+   var r = (x * xPeriod / w) - (y * yPeriod / h) + (power * perlin_2D(x, y));
+   return 290 * Math.abs(Math.sin( Math.PI * r));
+}
+
+
+function wood(x, y, period, power) {
+   var xval = (x - w_2)/w;
+   var yval = (y - h_2)/h;
+   var dist = Math.sqrt(xval*xval + yval*yval) + (power * perlin_2D(x, y));
+   return 225 * Math.abs(Math.sin( Math.PI * dist * period * 2.0));
+}
+
+
+
+for (var x=0; x < w; x++) {
+   for (var y=0; y < h; y++) {
+      // var p = perlin_2D(x, y) * 100;
+      // var p = weird_circle(x, y, 30, 1.2)*150;
+      // var p = marble(x, y, 5, 3, 4);
+      // var p = wood(x, y, 3.5, 0.15);
+
+      var p0 = weird_circle(x, y, 30, 1.2)*150;
+      var p1 = marble(x, y, 5, 3, 4);
+      var p2 = wood(x, y, 3.5, 0.15);
+      var p = 0.8 * p2 - 0.3 * p1 + 0.8 * p0;
+
+      d3.select("#canvas")
+        .append("rect")
+        .attr("x", x*1)
+        .attr("y", y*1)
+        .attr("width", 1)
+        .attr("height", 1)
+        .style("fill", d3.rgb(p, p, p));
+   }
+}
+</script>
+</html>
+
