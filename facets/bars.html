@@ -1,0 +1,61 @@
+<html>
+<head>
+   <title> Bars Test </title>
+   <script  src="d3.v3.min.js"></script>
+   <script  src="bars.js"></script>
+   <style>
+   body {
+      font-family: Tahoma;
+      font-size: 1rem;
+   }
+
+   .debug {
+      font-size: 0.75rem;
+   }
+
+   .axis {
+      font-size: 0.5rem;
+      color: #888888;
+   }
+
+   .axis path,
+   .axis line {
+       fill: none;
+       stroke: #888888;
+       shape-rendering: crispEdges;
+   }
+
+   </style>
+</head>
+<body style="margin:2.5em">
+<div>
+    <span id="xyz"></span>
+    <span id="xyz2"></span>
+</div>
+</body>
+<script>
+   var flag = -1;
+   var oData = [15, 20, 30, 30, 15, 60, 60];
+   var cData = [10, 20, 20, 15, 15, 50, 15];
+   var barTest = new BarChart(oData, oData, null);
+   barTest.render( d3.select('#xyz').node() );
+
+   var oData2 = [20, 30, 30, 15, 50, 50];
+   var cData2 = [10, 25, 5, 10, 5, 45];
+   var barTest2 = new BarChart(oData2, oData2, null);
+   barTest2.render( d3.select('#xyz2').node() );
+
+
+   document.onclick = function() {
+     if (flag) {
+       barTest.update( cData );
+       barTest2.update( cData2 );
+     } else {
+       barTest.update( oData );
+       barTest2.update( oData2 );
+     }
+     flag = !flag;
+   };
+</script>
+</html>
+
