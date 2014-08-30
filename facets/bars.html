@@ -9,19 +9,25 @@
       font-size: 1rem;
    }
 
+   span {
+      border-width: 0;
+      border-style: solid;
+      border-color: #0F0F0F;
+   }
+
    .debug {
       font-size: 0.75rem;
    }
 
    .axis {
-      font-size: 0.5rem;
-      color: #888888;
+      font-size: 0.75rem;
+      color: #AAAAAA;
    }
 
    .axis path,
    .axis line {
        fill: none;
-       stroke: #888888;
+       stroke: #AAAAAA;
        shape-rendering: crispEdges;
    }
 
@@ -29,22 +35,21 @@
 </head>
 <body style="margin:2.5em">
 <div>
-    <span id="xyz"></span>
-    <span id="xyz2"></span>
+    <span id="xyz" style="display:inline-block"></span>
+    <span id="xyz2" style="display:inline-block"></span>
 </div>
 </body>
 <script>
    var flag = -1;
-   var oData = [15, 20, 30, 30, 15, 60, 60];
-   var cData = [10, 20, 20, 15, 15, 50, 15];
-   var barTest = new BarChart(oData, oData, null);
+   var oData = [15, 20, 30, 15, 20, 30, 15, 20, 30, 15, 20, 30, 30, 15, 60, 60, 99, 70, 112];
+   var cData = [5, 2, 30, 8, 10, 20, 15, 20, 30, 10, 20, 20, 15, 15, 50, 15, 0, 30, 108];
+   var barTest = new BarChart(oData, cData, null);
    barTest.render( d3.select('#xyz').node() );
 
    var oData2 = [20, 30, 30, 15, 50, 50];
    var cData2 = [10, 25, 5, 10, 5, 45];
    var barTest2 = new BarChart(oData2, oData2, null);
    barTest2.render( d3.select('#xyz2').node() );
-
 
    document.onclick = function() {
      if (flag) {
