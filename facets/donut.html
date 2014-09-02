@@ -2,7 +2,8 @@
 <html>
 <meta charset="utf-8">
 <head>
-<script src="http://d3js.org/d3.v3.min.js"></script>
+<script src="d3.v3.min.js"></script>
+<script src="donut.js"></script>
 </head>
 <style>
 body {
@@ -15,6 +16,7 @@ body {
 }
 </style>
 <body>
+<div id="chart"></div>
 </body>
 <script>
 
@@ -47,6 +49,13 @@ var data = [
 ]},
 ];
  
+
+var burst = new DonutChart(data, null);
+burst.render( d3.select('#chart').node() );
+
+
+
+/*
 var width = 960,
     height = 500,
     radius = Math.min(width, height) / 4;
@@ -82,7 +91,7 @@ var svg = d3.select("body").append("svg")
       .enter().append("g")
       .attr("class", "arc")
       .each(function(d, idx) {
-         console.log(d.startAngle, d.endAngle, radius);
+         // console.log(d.startAngle, d.endAngle, radius);
 
          var children = data[idx].children;
          var step = Math.abs( d.endAngle - d.startAngle)/children.length;
@@ -118,20 +127,12 @@ var svg = d3.select("body").append("svg")
                });
            } 
          }
-
-         /*
-         svg.append('circle')
-           .attr('cx',  radius * Math.sin( d.endAngle) )
-           .attr('cy',  radius * -Math.cos( d.endAngle) )
-           .attr('r', 10)
-           .attr('fill', '#FF88FF');
-           */
-
       });
  
   g.append("path")
       .attr("d", arc)
       .style("fill", function(d, i) { return color(i); });
+      */
  
   /* 
   g.append("text")
