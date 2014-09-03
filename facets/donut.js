@@ -17,8 +17,8 @@ var DonutChart = function( data, config ) {
 
 
   // Defaults
-  config.width = config.width || 400;
-  config.height = config.height || 400; 
+  config.width = config.width || 500;
+  config.height = config.height || 500; 
   config.segmentSize = config.segmentSize || 50;
 
   // Calculated
@@ -73,8 +73,17 @@ DonutChart.prototype.render = function( element ) {
 
   // Render arcs
   arcs.append('path')
+    .classed('arc', true)
     .attr('d', arc)
-    .style("fill", function(d, i) { return _this.color(i); });
+    .style("fill", function(d, i) { return _this.color(i); })
+    .on('mouseover', function(d) {
+      d3.select(this.parentNode).selectAll('.arc').style('fill', '#FF8800');
+    })
+    .on('mouseout', function(d, i) {
+      d3.select(this.parentNode).selectAll('.arc').style('fill', _this.color(i));
+    });
+
+
 
   // Render bursts
   arcs.each(function(d, idx) {
@@ -84,10 +93,49 @@ DonutChart.prototype.render = function( element ) {
 
     var parentArc = d3.select(this);
 
+    
+
     children.forEach(function(child, cidx) {
       var segments = Math.ceil( child.size / _this.config.segmentSize );
 
+      /*
+      var arc = d3.svg.arc()
+        .innerRadius(125)
+        .outerRadius(17*segments + _this.config.radius)
+        .startAngle(d.startAngle + (cidx*step)) 
+        .endAngle(d.startAngle + (cidx+1)*step);
+
+      parentArc.append("svg:path")
+        .style("fill", "#EEEEEE")
+        .style("stroke", "#888888")
+        .style("opacity", 0.25)
+        .attr("d", arc); */
+
+
       for (var j=0; j < segments; j ++) {
+
+        var base = 10*j*1.75;
+        var start = d.startAngle + (cidx*step); 
+        var end = d.startAngle + (cidx+1)*step;
+
+        start += 0.05;
+        end -= 0.05;
+
+
+        var arc = d3.svg.arc()
+          .innerRadius(125 + base)
+          .outerRadius(125 + base+10)
+          .startAngle(start)
+          .endAngle(end);
+
+        parentArc.append("svg:path")
+          .classed('arc', true)
+          .style("fill", _this.color(idx))
+          .style("stroke", "#EEEEEE")
+          .style("opacity", 0.85)
+          .attr("d", arc);
+
+        /*
         parentArc.append('circle')
           .attr('cx',  (17*j + _this.config.radius*0.7) * Math.sin( step_2 + d.startAngle + cidx*step) )
           .attr('cy',  (17*j + _this.config.radius*0.7) * -Math.cos( step_2 + d.startAngle + cidx*step) )
@@ -95,6 +143,7 @@ DonutChart.prototype.render = function( element ) {
           .attr('fill', function(d) {
              return _this.color(idx);
           });
+          */
       } 
 
     });
