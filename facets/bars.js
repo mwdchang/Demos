@@ -35,6 +35,7 @@ var BarChart = function( originalData, currentData, config ) {
     height: 150,
     margin: 5,
     padding: 20,
+    title: 'Bar Chart',
     map: function( data, idx ) {
       return {
         key: idx,
@@ -53,25 +54,26 @@ var BarChart = function( originalData, currentData, config ) {
   });
 
 
-  // map(data, idx) => {key, value, label}
-
 
   // ---------------------------------------------------------------------
+  // | <----------------------------- margin --------------------------> | 
   // | <- margin -> | <--------------- vis -------------> | <- margin -> | 
   // | <- margin -> |                                     | <- margin -> | 
   // | <- margin -> | <- padding -> | chart | <-padding-> | <- margin -> |
+  // | <- margin -> |                                     | <- margin -> |
+  // | <----------------------------- margin --------------------------> | 
   // ---------------------------------------------------------------------
   config.visWidth  = config.width - 2.0 * config.margin;
   config.visHeight = config.height - 2.0 * config.margin;
   config.chartWidth  = config.visWidth - 2.0 * config.padding;
   config.chartHeight = config.visHeight - 2.0 * config.padding;
 
+
   //            __________           __________                 __________
   // | <- s -> | <- B1 -> | <- s -> | <- B2 -> | ... | <- s -> | <- BN -> |
   // ----------------------------------------------------------------------
   config.barWidth = (config.chartWidth - originalData.length * config.barSpacing) / (originalData.length);
   config.barWidth = Math.max( config.barWidth, 2.0 );
-
 
 
   // Helper functions
@@ -125,7 +127,7 @@ BarChart.prototype.render = function( element ) {
 
   var _this = this;
   var config = _this.config;
-  var svg, vis, chart, controlGroup;
+  var svg, vis, chart, title, controlGroup;
   this.element = element;
 
   
@@ -142,6 +144,12 @@ BarChart.prototype.render = function( element ) {
     .attr('width', _this.config.chartWidth)
     .attr('height', _this.config.chartHeight)
     .style('fill', '#EEEEEE');
+
+
+  vis.append('g')
+    .attr('transform', _this.translate(2, 11))
+    .append('text')
+    .text(_this.config.title);
 
 
   vis.append('g')
@@ -175,6 +183,7 @@ BarChart.prototype.render = function( element ) {
     .style('opacity', 0.0);
 
  
+  // User interaction
   controlGroup.on('mouseover', function() {
     var cval = d3.select(this).select('.bar_current').datum();
     console.log(cval);
@@ -182,7 +191,7 @@ BarChart.prototype.render = function( element ) {
     d3.select(this).select('.bar_current').style('fill', '#FF8800');
     d3.select(this).style('fill', '#FF8800');
     chart.append('rect').classed('debug', true).attr('x', 0).attr('y', _this.yScale(cval.cvalue)).attr('height', 1).attr('width', _this.config.chartWidth).style('fill', '#339933');
-    chart.append('text').classed('debug', true).attr('x', _this.config.chartWidth).attr('y', _this.yScale(cval.value)+5).text(cval.cvalue);
+    chart.append('text').classed('debug', true).attr('x', _this.config.chartWidth+2).attr('y', _this.yScale(cval.cvalue)+5).text(cval.cvalue);
     chart.append('text').classed('debug', true).attr('x', 80).attr('y', _this.config.chartHeight + 15).text(cval.label + ': ' + cval.cvalue);
   });
   controlGroup.on('mouseout', function() {
@@ -207,18 +216,19 @@ BarChart.prototype.render = function( element ) {
 
   // Build current values
   controlGroup.each(function(d,i) {
-    if ( ! cMap[d.key]) return;
-    var current = cMap[d.key];
-
-    d.cvalue = current.value;
+    if ( ! cMap[d.key]) {
+      d.cvalue = 0;
+    } else {
+      d.cvalue = cMap[d.key].value;
+    }
 
     d3.select(this)
       .append('rect')
       .attr('class', 'bar_current')
       .attr('x', 0)
-      .attr('y', _this.yScale(current.value))
+      .attr('y', _this.yScale(d.cvalue))
       .attr('width', _this.config.barWidth)
-      .attr('height', (config.chartHeight - _this.yScale(current.value)))
+      .attr('height', (config.chartHeight - _this.yScale(d.cvalue)))
       .attr('stroke', function() { return config.colourOutline; })
       .style('fill', _this.config.colourFill)
       .style('opacity', 0.8);

@@ -10,10 +10,14 @@
    }
 
    code {
-      background-color: #eee;
+      background-color: #F3F3F3;
       display:block;
       padding: 0.5em;
       border-radius: 8;
+      border-style: solid;
+      border-color: #CCC;
+      border-width: 1;
+      font-size: 0.8rem;
    }
 
    span {
@@ -44,12 +48,9 @@
 <div>
     <span style="display:inline-block; margin-right:4em; vertical-align:top">
        <pre><code id="xyz_text">
-   var config1 = {
-     colourFill: '#FF2222'
-   };
    var simpleOrig = [ 20, 30, 15, 20, 30, 30, 15, 60, 60, 99, 70, 112];
-   var simpleCurr = [ 30, 10, 20, 20, 15, 15, 50, 15, 0, 30, 108];
-   var barTest = new BarChart(simpleOrig, simpleOrig, config1);
+   var simpleCurr = [ 30, 10, 20, 20, 15, 15, 50, 15,  0, 30, 50, 108];
+   var barTest = new BarChart(simpleOrig, simpleOrig, null);
    barTest.render( d3.select('#xyz').node() );
        </code></pre>
     </span>
@@ -62,6 +63,8 @@
    var config2 = {
      colourFill: '#FFDD00',
      height: 250,
+     barSpacing: 15,
+     title: 'Chart with custom mappings',
      map: function(d, i) {
        return {
          key: d.label,
@@ -85,8 +88,6 @@
 <script>
    eval( d3.select('#xyz_text').node().textContent );
    eval( d3.select('#xyz_text2').node().textContent );
-
-
 
 
    var flag = -1;
