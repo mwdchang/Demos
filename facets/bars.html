@@ -9,6 +9,13 @@
       font-size: 1rem;
    }
 
+   code {
+      background-color: #eee;
+      display:block;
+      padding: 0.5em;
+      border-radius: 8;
+   }
+
    span {
       border-width: 0;
       border-style: solid;
@@ -35,29 +42,61 @@
 </head>
 <body style="margin:2.5em">
 <div>
+    <span style="display:inline-block; margin-right:4em; vertical-align:top">
+       <pre><code id="xyz_text">
+   var config1 = {
+     colourFill: '#FF2222'
+   };
+   var simpleOrig = [ 20, 30, 15, 20, 30, 30, 15, 60, 60, 99, 70, 112];
+   var simpleCurr = [ 30, 10, 20, 20, 15, 15, 50, 15, 0, 30, 108];
+   var barTest = new BarChart(simpleOrig, simpleOrig, config1);
+   barTest.render( d3.select('#xyz').node() );
+       </code></pre>
+    </span>
     <span id="xyz" style="display:inline-block"></span>
-    <span id="xyz2" style="display:inline-block"></span>
+
+    <hr>
+    <span id="xyz2" style="display:inline-block;vertical-align:top"></span>
+    <span style="display:inline-block; margin-right:4em">
+       <pre><code id="xyz_text2">
+   var config2 = {
+     colourFill: '#FFDD00',
+     height: 250,
+     map: function(d, i) {
+       return {
+         key: d.label,
+         value: Math.floor(Math.sqrt( d.val)),
+         label: d.label + '(' + (i+1) + ')'
+       };
+     }
+   };
+
+   var objOrig = [ {label: 'first', val: 60}, {label: 'second', val:40}, {label: 'third', val:30}];
+   var objCurr = [ {label: 'first', val: 20}, {label: 'third', val:20}];
+
+   var barTest2 = new BarChart(objOrig, objOrig, config2);
+   barTest2.render( d3.select('#xyz2').node() );
+
+       </code></pre>
+    </span>
+
 </div>
 </body>
 <script>
+   eval( d3.select('#xyz_text').node().textContent );
+   eval( d3.select('#xyz_text2').node().textContent );
+
+
+
+
    var flag = -1;
-   var oData = [15, 20, 30, 15, 20, 30, 15, 20, 30, 15, 20, 30, 30, 15, 60, 60, 99, 70, 112];
-   var cData = [5, 2, 30, 8, 10, 20, 15, 20, 30, 10, 20, 20, 15, 15, 50, 15, 0, 30, 108];
-   var barTest = new BarChart(oData, cData, null);
-   barTest.render( d3.select('#xyz').node() );
-
-   var oData2 = [20, 30, 30, 15, 50, 50];
-   var cData2 = [10, 25, 5, 10, 5, 45];
-   var barTest2 = new BarChart(oData2, oData2, null);
-   barTest2.render( d3.select('#xyz2').node() );
-
    document.onclick = function() {
      if (flag) {
-       barTest.update( cData );
-       barTest2.update( cData2 );
+       barTest.update( simpleCurr );
+       barTest2.update( objCurr );
      } else {
-       barTest.update( oData );
-       barTest2.update( oData2 );
+       barTest.update( simpleOrig );
+       barTest2.update( objOrig );
      }
      flag = !flag;
    };
