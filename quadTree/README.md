@@ -1,6 +1,6 @@
 Quadtree
 --------
-This is a Quad Javascript library for recursively partitioning 2-dimensional spaces into hierarchical grids. This implementation uses a `capacity` parameter to constrain the number of data-points a space can have before subdivision occurs. 
+This is a quadtree Javascript library for recursively partitioning 2-dimensional spaces into hierarchical grids. This implementation uses a `capacity` parameter to constrain the number of data-points a space can have before subdivision occurs. 
 
 **QuadTree.js** : Library.
 
