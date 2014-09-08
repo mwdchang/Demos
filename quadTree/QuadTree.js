@@ -3,16 +3,16 @@ var QuadTree = function(x1, y1, x2, y2, capacity) {
   this.y1 = y1;
   this.x2 = x2;
   this.y2 = y2;
-
   this.capacity = capacity;  
+
   this.topLeft  = null;
   this.topRight = null;
   this.bottomLeft  = null;
   this.bottomRight = null;
-
   this.ancestor = null;
   this.isSplit = false;
 
+  this.area = Math.abs( (x2 - x1) * (y2 - y1));
   this.data = [];
 };
 
@@ -32,6 +32,19 @@ QuadTree.prototype.split = function() {
   this.bottomLeft.ancestor = this;
   this.bottomRight.ancestor = this;
   this.isSplit = true;
+};
+
+
+
+QuadTree.prototype.findQ = function( d ) {
+  var midx = Math.abs(this.x2 - this.x1) * 0.5;
+  var midy = Math.abs(this.y2 - this.y1) * 0.5;
+  if (! this.isSplit) return this;
+
+  if (d.x <= this.x1 + midx && d.y > this.y1 + midy) return this.topLeft.findQ(d);
+  if (d.x  > this.x1 + midx && d.y > this.y1 + midy) return this.topRight.findQ(d);
+  if (d.x <= this.x1 + midx && d.y <= this.y1 + midy) return this.bottomLeft.findQ(d);
+  if (d.x  > this.x1 + midx && d.y <= this.y1 + midy) return this.bottomRight.findQ(d);
 };
 
 
@@ -60,7 +73,8 @@ QuadTree.prototype.put = function( d ) {
 
   if (! this.isSplit) {
     this.data.push(d);
-    if (this.data.length > this.capacity) {
+
+    if (this.data.length > this.capacity && this.area > 2500) {
       this.split();
       for (var i=0; i < this.data.length; i++) {
         this.put(this.data[i]);
