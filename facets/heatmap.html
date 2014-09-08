@@ -1,0 +1,38 @@
+<html>
+<head>
+<title>D3 Heatmap Test</title>
+<script src="d3.v3.min.js"></script>
+<script src="heatmap.js"></script>
+<style>
+body {
+   margin: 1em;
+   text-align: center;
+   font-family: Tahoma;
+   font-size: 1.2em;
+   color: #556666;
+}  
+</style>
+</head>
+<body> 
+<p> Simple heatmap test.</p> 
+<br>
+<div id="canvas"></div>
+</body>
+
+<script>
+var data = [ [1, 2, 3, 2, 6], 
+             [3, 5, 6, 8, 4], 
+             [3, 4, 0, 9, 3], 
+             [1, 7, 4, 3, 8], 
+             [2, 8, 1, 8, 1] 
+           ];
+
+
+var config = {
+  width: 200
+};
+var heatmap = new Heatmap(data, config);
+heatmap.render( d3.select('#canvas').node() );
+
+</script>
+</html>
