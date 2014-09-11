@@ -1,0 +1,300 @@
+<html>
+<head>
+<title> Test Bubble/Force</title>
+<style type="text/css">
+</style>
+<script src="underscore-min.js"></script>
+<script src="d3.v3.min.js"></script>
+<style>
+body {
+   margin: 1em;
+}
+</style>
+</head>
+<body>
+<div>
+   <button id="button">By primary site</button>
+   <br>
+   <div style="float:left">
+      <svg id="vis" width="600" height="500"></svg>
+   </div>
+   <svg id="detail" width="400" height="200"></svg>
+</div>
+</body>
+<script>
+
+var displayMode = 'normal';
+var svg = d3.select("#vis").append("g");
+var svgDetail = d3.select("#detail").append("g");
+var width = 500;
+var height = 400;
+var force;
+var projects;
+var nodes;
+var TWEAK_UNTIL_IT_LOOKS_NICE = 0.068;
+
+// var cNormal = "#FF771A";
+var cHover  = "#2288CC";
+
+var d3cat20 = d3.scale.category20();
+var siteMap = [
+  'Breast',
+  'Brain',
+  'Ovary',
+  'Kidney', 
+  'Head and neck',
+  'Uterus',
+  'Pancreas', 
+  'Lung', 
+  'Colorectal',
+  'Blood', 
+  'Skin', 
+  'Stomach', 
+  'Liver', 
+  'Prostate', 
+  'Bladder', 
+  'Cervix', 
+  'Esophagus', 
+  'Bone'
+];
+
+var dataTypes = [
+  'totalDonorCount',
+  'ssmTestedDonorCount',
+  'cnsmTestedDonorCount',
+  'stsmTestedDonorCount',
+  'sgvTestedDonorCount',
+  'methSeqTestedDonorCount',
+  'methArrayTestedDonorCount',
+  'expSeqTestedDonorCount',
+  'expArrayTestedDonorCount',
+  'pexpTestedDonorCount'
+ ];
+
+
+
+function cNormal(d) {
+   console.log(d.primarySite);
+   return d3cat20( siteMap.indexOf(d.primarySite) );
+}
+//= "#FF771A";
+
+var isCentered = true;
+
+function response() {
+   return '{"hits":[{"id":"BRCA-US","icgcId":"70265","primarySite":"Breast","name":"Breast Cancer - TCGA, US","tumourType":"Breast cancer","tumourSubtype":"Ductal & lobular","pubmedIds":[],"primaryCountries":["United States"],"partnerCountries":[],"availableDataTypes":["exp_array","meth_array","pexp","mirna_seq","exp_seq","cnsm","ssm"],"ssmTestedDonorCount":943,"cnsmTestedDonorCount":984,"stsmTestedDonorCount":0,"sgvTestedDonorCount":0,"methSeqTestedDonorCount":0,"methArrayTestedDonorCount":971,"expSeqTestedDonorCount":979,"expArrayTestedDonorCount":529,"pexpTestedDonorCount":298,"mirnaSeqTestedDonorCount":965,"jcnTestedDonorCount":0,"totalDonorCount":984,"experimentalAnalysisPerformedDonorCounts":{"WGS":117,"VALIDATION":139,"RNA-Seq":975,"Bisulfite-Seq":5,"WXS":967,"miRNA-Seq":961},"experimentalAnalysisPerformedSampleCounts":{"WGS":242,"VALIDATION":320,"RNA-Seq":1107,"Bisulfite-Seq":6,"WXS":1996,"miRNA-Seq":1085},"repository":["CGHub"]},{"id":"GBM-US","icgcId":"965","primarySite":"Brain","name":"Brain Glioblastoma Multiforme - TCGA, US","tumourType":"Brain cancer","tumourSubtype":"Glioblastoma multiforme","pubmedIds":[],"primaryCountries":["United States"],"partnerCountries":[],"availableDataTypes":["exp_array","pexp","cnsm","ssm","exp_seq","meth_array"],"ssmTestedDonorCount":268,"cnsmTestedDonorCount":570,"stsmTestedDonorCount":0,"sgvTestedDonorCount":0,"methSeqTestedDonorCount":0,"methArrayTestedDonorCount":393,"expSeqTestedDonorCount":159,"expArrayTestedDonorCount":568,"pexpTestedDonorCount":211,"mirnaSeqTestedDonorCount":0,"jcnTestedDonorCount":0,"totalDonorCount":579,"experimentalAnalysisPerformedDonorCounts":{"WGS":53,"VALIDATION":259,"RNA-Seq":160,"Bisulfite-Seq":6,"WXS":409},"experimentalAnalysisPerformedSampleCounts":{"WGS":118,"VALIDATION":514,"RNA-Seq":167,"Bisulfite-Seq":6,"WXS":1004},"repository":["CGHub"]},{"id":"OV-US","icgcId":"968","primarySite":"Ovary","name":"Ovarian Serous Cystadenocarcinoma - TCGA, US","tumourType":"Ovarian cancer","tumourSubtype":"Serous cystadenocarcinoma","pubmedIds":[],"primaryCountries":["United States"],"partnerCountries":[],"availableDataTypes":["pexp","ssm","cnsm","meth_array","exp_array","mirna_seq","exp_seq"],"ssmTestedDonorCount":88,"cnsmTestedDonorCount":562,"stsmTestedDonorCount":0,"sgvTestedDonorCount":0,"methSeqTestedDonorCount":0,"methArrayTestedDonorCount":572,"expSeqTestedDonorCount":262,"expArrayTestedDonorCount":567,"pexpTestedDonorCount":236,"mirnaSeqTestedDonorCount":473,"jcnTestedDonorCount":0,"totalDonorCount":574,"experimentalAnalysisPerformedDonorCounts":{"WGS":52,"VALIDATION":11,"RNA-Seq":411,"WXS":529,"miRNA-Seq":474},"experimentalAnalysisPerformedSampleCounts":{"WGS":106,"VALIDATION":22,"RNA-Seq":417,"WXS":1196,"miRNA-Seq":483},"repository":["CGHub"]},{"id":"NBL-US","primarySite":"Brain","name":"Neuroblastoma - TARGET, US","tumourType":"Brain cancer","tumourSubtype":"Neuroblastoma","pubmedIds":[],"primaryCountries":["United States"],"partnerCountries":[],"availableDataTypes":["ssm"],"ssmTestedDonorCount":41,"cnsmTestedDonorCount":0,"stsmTestedDonorCount":0,"sgvTestedDonorCount":0,"methSeqTestedDonorCount":0,"methArrayTestedDonorCount":0,"expSeqTestedDonorCount":0,"expArrayTestedDonorCount":0,"pexpTestedDonorCount":0,"mirnaSeqTestedDonorCount":0,"jcnTestedDonorCount":0,"totalDonorCount":573,"experimentalAnalysisPerformedDonorCounts":{"WGS":41},"experimentalAnalysisPerformedSampleCounts":{"WGS":41},"repository":["CGHub"]},{"id":"KIRC-US","icgcId":"70270","primarySite":"Kidney","name":"Kidney Renal Clear Cell Carcinoma - TCGA, US","tumourType":"Renal cancer","tumourSubtype":"Clear cell carcinoma","pubmedIds":[],"primaryCountries":["United States"],"partnerCountries":[],"availableDataTypes":["pexp","exp_array","exp_seq","mirna_seq","ssm","cnsm","meth_array"],"ssmTestedDonorCount":404,"cnsmTestedDonorCount":504,"stsmTestedDonorCount":0,"sgvTestedDonorCount":0,"methSeqTestedDonorCount":0,"methArrayTestedDonorCount":491,"expSeqTestedDonorCount":502,"expArrayTestedDonorCount":26,"pexpTestedDonorCount":454,"mirnaSeqTestedDonorCount":477,"jcnTestedDonorCount":0,"totalDonorCount":507,"experimentalAnalysisPerformedDonorCounts":{"WGS":41,"VALIDATION":123,"RNA-Seq":502,"WXS":495,"miRNA-Seq":477},"experimentalAnalysisPerformedSampleCounts":{"WGS":81,"VALIDATION":233,"RNA-Seq":582,"WXS":1027,"miRNA-Seq":554},"repository":["CGHub"]},{"id":"THCA-US","icgcId":"74004","primarySite":"Head and neck","name":"Head and Neck Thyroid Carcinoma - TCGA, US","tumourType":"Head and neck cancer","tumourSubtype":"Thyroid carcinoma","pubmedIds":[],"primaryCountries":["United States"],"partnerCountries":[],"availableDataTypes":["cnsm","ssm","meth_array","exp_seq","mirna_seq","pexp"],"ssmTestedDonorCount":393,"cnsmTestedDonorCount":487,"stsmTestedDonorCount":0,"sgvTestedDonorCount":0,"methSeqTestedDonorCount":0,"methArrayTestedDonorCount":488,"expSeqTestedDonorCount":486,"expArrayTestedDonorCount":0,"pexpTestedDonorCount":361,"mirnaSeqTestedDonorCount":487,"jcnTestedDonorCount":0,"totalDonorCount":488,"experimentalAnalysisPerformedDonorCounts":{"WGS":136,"VALIDATION":252,"RNA-Seq":486,"WXS":483,"miRNA-Seq":487},"experimentalAnalysisPerformedSampleCounts":{"WGS":301,"VALIDATION":416,"RNA-Seq":549,"WXS":995,"miRNA-Seq":550},"repository":["CGHub"]},{"id":"UCEC-US","icgcId":"70267","primarySite":"Uterus","name":"Uterine Corpus Endometrial Carcinoma- TCGA, US","tumourType":"Endometrial cancer","tumourSubtype":"Uterine corpus endometrial carcinoma","pubmedIds":[],"primaryCountries":["United States"],"partnerCountries":[],"availableDataTypes":["meth_array","exp_array","pexp","cnsm","ssm","exp_seq","mirna_seq"],"ssmTestedDonorCount":246,"cnsmTestedDonorCount":481,"stsmTestedDonorCount":0,"sgvTestedDonorCount":0,"methSeqTestedDonorCount":0,"methArrayTestedDonorCount":481,"expSeqTestedDonorCount":476,"expArrayTestedDonorCount":54,"pexpTestedDonorCount":200,"mirnaSeqTestedDonorCount":129,"jcnTestedDonorCount":0,"totalDonorCount":482,"experimentalAnalysisPerformedDonorCounts":{"WGS":147,"VALIDATION":221,"RNA-Seq":478,"Bisulfite-Seq":5,"WXS":478,"miRNA-Seq":473},"experimentalAnalysisPerformedSampleCounts":{"WGS":330,"VALIDATION":443,"RNA-Seq":511,"Bisulfite-Seq":6,"WXS":983,"miRNA-Seq":502},"repository":["CGHub"]},{"id":"PACA-AU","icgcId":"798","primarySite":"Pancreas","name":"Pancreatic Cancer - AU","tumourType":"Pancreatic cancer","tumourSubtype":"Ductal adenocarcinoma","pubmedIds":["21436628"],"primaryCountries":["Australia"],"partnerCountries":["Canada"],"availableDataTypes":["exp_seq","stsm","exp_array","meth_array","ssm","cnsm"],"ssmTestedDonorCount":338,"cnsmTestedDonorCount":172,"stsmTestedDonorCount":147,"sgvTestedDonorCount":0,"methSeqTestedDonorCount":0,"methArrayTestedDonorCount":167,"expSeqTestedDonorCount":93,"expArrayTestedDonorCount":238,"pexpTestedDonorCount":0,"mirnaSeqTestedDonorCount":0,"jcnTestedDonorCount":0,"totalDonorCount":468,"experimentalAnalysisPerformedDonorCounts":{"WXS":201,"WGS":147},"experimentalAnalysisPerformedSampleCounts":{"WXS":201,"WGS":165},"repository":["EGA"]},{"id":"LUAD-US","icgcId":"969","primarySite":"Lung","name":"Lung Adenocarcinoma - TCGA, US","tumourType":"Lung cancer","tumourSubtype":"Adenocarcinoma","pubmedIds":[],"primaryCountries":["United States"],"partnerCountries":[],"availableDataTypes":["cnsm","mirna_seq","exp_seq","pexp","meth_array","exp_array"],"ssmTestedDonorCount":0,"cnsmTestedDonorCount":462,"stsmTestedDonorCount":0,"sgvTestedDonorCount":0,"methSeqTestedDonorCount":0,"methArrayTestedDonorCount":460,"expSeqTestedDonorCount":455,"expArrayTestedDonorCount":29,"pexpTestedDonorCount":237,"mirnaSeqTestedDonorCount":452,"jcnTestedDonorCount":0,"totalDonorCount":466,"experimentalAnalysisPerformedDonorCounts":{"WGS":147,"VALIDATION":195,"RNA-Seq":455,"Bisulfite-Seq":5,"WXS":463,"miRNA-Seq":452},"experimentalAnalysisPerformedSampleCounts":{"WGS":341,"VALIDATION":362,"RNA-Seq":520,"Bisulfite-Seq":6,"WXS":1103,"miRNA-Seq":500},"repository":["CGHub"]},{"id":"COAD-US","icgcId":"1134","primarySite":"Colorectal","name":"Colon Adenocarcinoma - TCGA, US","tumourType":"Colon cancer","tumourSubtype":"Adenocarcinoma","pubmedIds":[],"primaryCountries":["United States"],"partnerCountries":[],"availableDataTypes":["exp_array","mirna_seq","exp_seq","meth_array","pexp","cnsm","ssm"],"ssmTestedDonorCount":216,"cnsmTestedDonorCount":416,"stsmTestedDonorCount":0,"sgvTestedDonorCount":0,"methSeqTestedDonorCount":0,"methArrayTestedDonorCount":414,"expSeqTestedDonorCount":411,"expArrayTestedDonorCount":144,"pexpTestedDonorCount":290,"mirnaSeqTestedDonorCount":418,"jcnTestedDonorCount":0,"totalDonorCount":437,"experimentalAnalysisPerformedDonorCounts":{"WGS":107,"RNA-Seq":410,"Bisulfite-Seq":2,"WXS":433,"miRNA-Seq":417},"experimentalAnalysisPerformedSampleCounts":{"WGS":256,"RNA-Seq":479,"Bisulfite-Seq":3,"WXS":938,"miRNA-Seq":437},"repository":["CGHub"]},{"id":"ALL-US","icgcId":"1003474","primarySite":"Blood","name":"Acute Lymphoblastic Leukemia - TARGET, US","tumourType":"Leukemia","tumourSubtype":"Acute Lymphoblastic Leukemia","pubmedIds":["22897847","21680795","20699438","20139093","19880498","19470474","19129520"],"primaryCountries":["United States"],"partnerCountries":[],"availableDataTypes":["exp_array","ssm"],"ssmTestedDonorCount":2,"cnsmTestedDonorCount":0,"stsmTestedDonorCount":0,"sgvTestedDonorCount":0,"methSeqTestedDonorCount":0,"methArrayTestedDonorCount":0,"expSeqTestedDonorCount":0,"expArrayTestedDonorCount":207,"pexpTestedDonorCount":0,"mirnaSeqTestedDonorCount":0,"jcnTestedDonorCount":0,"totalDonorCount":420,"experimentalAnalysisPerformedDonorCounts":{"WXS":2},"experimentalAnalysisPerformedSampleCounts":{"WXS":2},"repository":["CGHub"]},{"id":"LUSC-US","icgcId":"73978","primarySite":"Lung","name":"Lung Squamous Cell Carcinoma - TCGA, US","tumourType":"Lung cancer","tumourSubtype":"Squamous cell carcinoma","pubmedIds":[],"primaryCountries":["United States"],"partnerCountries":[],"availableDataTypes":["meth_array","pexp","ssm","cnsm","mirna_seq","exp_seq"],"ssmTestedDonorCount":178,"cnsmTestedDonorCount":411,"stsmTestedDonorCount":0,"sgvTestedDonorCount":0,"methSeqTestedDonorCount":0,"methArrayTestedDonorCount":410,"expSeqTestedDonorCount":408,"expArrayTestedDonorCount":0,"pexpTestedDonorCount":195,"mirnaSeqTestedDonorCount":384,"jcnTestedDonorCount":0,"totalDonorCount":411,"experimentalAnalysisPerformedDonorCounts":{"WGS":50,"VALIDATION":205,"RNA-Seq":408,"Bisulfite-Seq":4,"WXS":409,"miRNA-Seq":384},"experimentalAnalysisPerformedSampleCounts":{"WGS":99,"VALIDATION":417,"RNA-Seq":452,"Bisulfite-Seq":5,"WXS":966,"miRNA-Seq":421},"repository":["CGHub"]},{"id":"HNSC-US","icgcId":"70269","primarySite":"Head and neck","name":"Head and Neck Squamous Cell Carcinoma - TCGA, US","tumourType":"Head and neck cancer","tumourSubtype":"Squamous cell carcinoma","pubmedIds":[],"primaryCountries":["United States"],"partnerCountries":[],"availableDataTypes":["cnsm","pexp","meth_array","exp_seq","mirna_seq"],"ssmTestedDonorCount":0,"cnsmTestedDonorCount":406,"stsmTestedDonorCount":0,"sgvTestedDonorCount":0,"methSeqTestedDonorCount":0,"methArrayTestedDonorCount":407,"expSeqTestedDonorCount":397,"expArrayTestedDonorCount":0,"pexpTestedDonorCount":212,"mirnaSeqTestedDonorCount":406,"jcnTestedDonorCount":0,"totalDonorCount":408,"experimentalAnalysisPerformedDonorCounts":{"WGS":157,"VALIDATION":279,"RNA-Seq":376,"WXS":407,"miRNA-Seq":406},"experimentalAnalysisPerformedSampleCounts":{"WGS":337,"VALIDATION":556,"RNA-Seq":416,"WXS":856,"miRNA-Seq":446},"repository":["CGHub"]},{"id":"PBCA-DE","icgcId":"822","primarySite":"Brain","name":"Pediatric Brain Cancer - DE","tumourType":"Pediatric brain tumors","tumourSubtype":"Medulloblastoma and Pediatric pilocytic","pubmedIds":["23175120","23079654","22820256","22832583","22832581","22358457","22565209","22286061","22265402"],"primaryCountries":["Germany"],"partnerCountries":[],"availableDataTypes":["meth_array","meth_seq","ssm","cnsm","stsm"],"ssmTestedDonorCount":248,"cnsmTestedDonorCount":4,"stsmTestedDonorCount":4,"sgvTestedDonorCount":0,"methSeqTestedDonorCount":42,"methArrayTestedDonorCount":115,"expSeqTestedDonorCount":0,"expArrayTestedDonorCount":0,"pexpTestedDonorCount":0,"mirnaSeqTestedDonorCount":0,"jcnTestedDonorCount":0,"totalDonorCount":382,"experimentalAnalysisPerformedDonorCounts":{"WGS":248},"experimentalAnalysisPerformedSampleCounts":{"WGS":248},"repository":["EGA"]},{"id":"SKCM-US","icgcId":"70274","primarySite":"Skin","name":"Skin Cutaneous melanoma - TCGA, US","tumourType":"Skin cancer","tumourSubtype":"Cutaneous melanoma","pubmedIds":[],"primaryCountries":["United States"],"partnerCountries":[],"availableDataTypes":["ssm","cnsm","meth_array","mirna_seq","exp_seq"],"ssmTestedDonorCount":319,"cnsmTestedDonorCount":341,"stsmTestedDonorCount":0,"sgvTestedDonorCount":0,"methSeqTestedDonorCount":0,"methArrayTestedDonorCount":338,"expSeqTestedDonorCount":336,"expArrayTestedDonorCount":0,"pexpTestedDonorCount":0,"mirnaSeqTestedDonorCount":318,"jcnTestedDonorCount":0,"totalDonorCount":341,"experimentalAnalysisPerformedDonorCounts":{"WGS":134,"RNA-Seq":331,"WXS":340,"miRNA-Seq":313},"experimentalAnalysisPerformedSampleCounts":{"WGS":305,"RNA-Seq":333,"WXS":679,"miRNA-Seq":315},"repository":["CGHub"]},{"id":"STAD-US","icgcId":"70268","primarySite":"Stomach","name":"Gastric Adenocarcinoma - TCGA, US","tumourType":"Gastric cancer","tumourSubtype":"Adenocarcinoma","pubmedIds":[],"primaryCountries":["United States"],"partnerCountries":[],"availableDataTypes":["pexp","ssm","cnsm","mirna_seq","meth_array"],"ssmTestedDonorCount":289,"cnsmTestedDonorCount":328,"stsmTestedDonorCount":0,"sgvTestedDonorCount":0,"methSeqTestedDonorCount":0,"methArrayTestedDonorCount":328,"expSeqTestedDonorCount":0,"expArrayTestedDonorCount":0,"pexpTestedDonorCount":281,"mirnaSeqTestedDonorCount":327,"jcnTestedDonorCount":0,"totalDonorCount":328,"experimentalAnalysisPerformedDonorCounts":{"WGS":128,"VALIDATION":142,"RNA-Seq":288,"Bisulfite-Seq":4,"WXS":311,"miRNA-Seq":310},"experimentalAnalysisPerformedSampleCounts":{"WGS":299,"VALIDATION":273,"RNA-Seq":318,"Bisulfite-Seq":5,"WXS":661,"miRNA-Seq":348},"repository":["CGHub"]},{"id":"LGG-US","icgcId":"74003","primarySite":"Brain","name":"Brain Lower Grade Gliona - TCGA, US","tumourType":"Brain cancer","tumourSubtype":"Lower grade glioma","pubmedIds":[],"primaryCountries":["United States"],"partnerCountries":[],"availableDataTypes":["meth_array","pexp","exp_seq","mirna_seq","ssm","cnsm","exp_array"],"ssmTestedDonorCount":268,"cnsmTestedDonorCount":304,"stsmTestedDonorCount":0,"sgvTestedDonorCount":0,"methSeqTestedDonorCount":0,"methArrayTestedDonorCount":293,"expSeqTestedDonorCount":304,"expArrayTestedDonorCount":27,"pexpTestedDonorCount":247,"mirnaSeqTestedDonorCount":301,"jcnTestedDonorCount":0,"totalDonorCount":305,"experimentalAnalysisPerformedDonorCounts":{"WGS":73,"RNA-Seq":304,"WXS":305,"miRNA-Seq":301},"experimentalAnalysisPerformedSampleCounts":{"WGS":144,"RNA-Seq":309,"WXS":612,"miRNA-Seq":306},"repository":["CGHub"]},{"id":"CLLE-ES","icgcId":"826","primarySite":"Blood","name":"Chronic Lymphocyclic Leukemia - ES","tumourType":"Chronic lymphocytic leukemia","tumourSubtype":"CLL with mutated and unmutated IgVH","pubmedIds":["22911550"],"primaryCountries":["Spain"],"partnerCountries":[],"availableDataTypes":["meth_seq","exp_array","exp_seq","ssm","cnsm","meth_array"],"ssmTestedDonorCount":109,"cnsmTestedDonorCount":4,"stsmTestedDonorCount":0,"sgvTestedDonorCount":0,"methSeqTestedDonorCount":3,"methArrayTestedDonorCount":159,"expSeqTestedDonorCount":101,"expArrayTestedDonorCount":219,"pexpTestedDonorCount":0,"mirnaSeqTestedDonorCount":0,"jcnTestedDonorCount":0,"totalDonorCount":264,"experimentalAnalysisPerformedDonorCounts":{"WXS":105,"WGS":4},"experimentalAnalysisPerformedSampleCounts":{"WXS":105,"WGS":4},"repository":["EGA"]},{"id":"LINC-JP","icgcId":"824","primarySite":"Liver","name":"Liver Cancer - NCC, JP","tumourType":"Liver cancer","tumourSubtype":"Hepatocellular carcinoma (Virus-associated)","pubmedIds":[],"primaryCountries":["Japan"],"partnerCountries":[],"availableDataTypes":["ssm"],"ssmTestedDonorCount":244,"cnsmTestedDonorCount":0,"stsmTestedDonorCount":0,"sgvTestedDonorCount":0,"methSeqTestedDonorCount":0,"methArrayTestedDonorCount":0,"expSeqTestedDonorCount":0,"expArrayTestedDonorCount":0,"pexpTestedDonorCount":0,"mirnaSeqTestedDonorCount":0,"jcnTestedDonorCount":0,"totalDonorCount":244,"experimentalAnalysisPerformedDonorCounts":{"WXS":213,"WGS":31},"experimentalAnalysisPerformedSampleCounts":{"WXS":213,"WGS":31},"repository":["EGA"]},{"id":"LIRI-JP","icgcId":"824","primarySite":"Liver","name":"Liver Cancer - RIKEN, JP","tumourType":"Liver cancer","tumourSubtype":"Hepatocellular carcinoma (Virus-associated)","pubmedIds":[],"primaryCountries":["Japan"],"partnerCountries":[],"availableDataTypes":["ssm"],"ssmTestedDonorCount":208,"cnsmTestedDonorCount":0,"stsmTestedDonorCount":0,"sgvTestedDonorCount":0,"methSeqTestedDonorCount":0,"methArrayTestedDonorCount":0,"expSeqTestedDonorCount":0,"expArrayTestedDonorCount":0,"pexpTestedDonorCount":0,"mirnaSeqTestedDonorCount":0,"jcnTestedDonorCount":0,"totalDonorCount":208,"experimentalAnalysisPerformedDonorCounts":{"WGS":208},"experimentalAnalysisPerformedSampleCounts":{"WGS":213},"repository":["EGA"]},{"id":"LAML-US","icgcId":"1133","primarySite":"Blood","name":"Acute Myeloid Leukemia - TCGA, US","tumourType":"Blood cancer","tumourSubtype":"Acute myeloid leukemia","pubmedIds":[],"primaryCountries":["United States"],"partnerCountries":[],"availableDataTypes":["cnsm","exp_array","meth_array","exp_seq","mirna_seq"],"ssmTestedDonorCount":0,"cnsmTestedDonorCount":198,"stsmTestedDonorCount":0,"sgvTestedDonorCount":0,"methSeqTestedDonorCount":0,"methArrayTestedDonorCount":194,"expSeqTestedDonorCount":173,"expArrayTestedDonorCount":197,"pexpTestedDonorCount":0,"mirnaSeqTestedDonorCount":188,"jcnTestedDonorCount":0,"totalDonorCount":200,"experimentalAnalysisPerformedDonorCounts":{"WGS":50,"VALIDATION":109,"RNA-Seq":173,"WXS":149,"Unknown":6,"miRNA-Seq":188},"experimentalAnalysisPerformedSampleCounts":{"WGS":122,"VALIDATION":128,"RNA-Seq":173,"WXS":321,"Unknown":6,"miRNA-Seq":191},"repository":["CGHub"]},{"id":"PRAD-US","icgcId":"70272","primarySite":"Prostate","name":"Prostate Adenocarcinoma - TCGA, US","tumourType":"Prostate cancer","tumourSubtype":"Adenocarcinoma","pubmedIds":["22212086","22555088"],"primaryCountries":["United States"],"partnerCountries":[],"availableDataTypes":["mirna_seq","exp_seq","pexp","ssm","cnsm","meth_array"],"ssmTestedDonorCount":190,"cnsmTestedDonorCount":196,"stsmTestedDonorCount":0,"sgvTestedDonorCount":0,"methSeqTestedDonorCount":0,"methArrayTestedDonorCount":196,"expSeqTestedDonorCount":195,"expArrayTestedDonorCount":0,"pexpTestedDonorCount":145,"mirnaSeqTestedDonorCount":192,"jcnTestedDonorCount":0,"totalDonorCount":199,"experimentalAnalysisPerformedDonorCounts":{"WGS":118,"RNA-Seq":196,"WXS":196,"miRNA-Seq":192},"experimentalAnalysisPerformedSampleCounts":{"WGS":264,"RNA-Seq":241,"WXS":438,"miRNA-Seq":237},"repository":["CGHub"]},{"id":"BLCA-US","icgcId":"1172","primarySite":"Bladder","name":"Bladder Urothelial Cancer - TGCA, US","tumourType":"Bladder cancer","tumourSubtype":"Invasive urothelial bladder cancer","pubmedIds":[],"primaryCountries":["United States"],"partnerCountries":[],"availableDataTypes":["ssm","cnsm","meth_array","mirna_seq","exp_seq","pexp"],"ssmTestedDonorCount":128,"cnsmTestedDonorCount":189,"stsmTestedDonorCount":0,"sgvTestedDonorCount":0,"methSeqTestedDonorCount":0,"methArrayTestedDonorCount":198,"expSeqTestedDonorCount":198,"expArrayTestedDonorCount":0,"pexpTestedDonorCount":125,"mirnaSeqTestedDonorCount":197,"jcnTestedDonorCount":0,"totalDonorCount":198,"experimentalAnalysisPerformedDonorCounts":{"WGS":114,"VALIDATION":128,"RNA-Seq":198,"Bisulfite-Seq":6,"WXS":198,"miRNA-Seq":197},"experimentalAnalysisPerformedSampleCounts":{"WGS":279,"VALIDATION":255,"RNA-Seq":221,"Bisulfite-Seq":7,"WXS":417,"miRNA-Seq":222},"repository":["CGHub"]},{"id":"READ-US","icgcId":"1002259","primarySite":"Colorectal","name":"Rectum Adenocarcinoma - TCGA, US","tumourType":"Rectal cancer","tumourSubtype":"Adenocarcinoma","pubmedIds":[],"primaryCountries":["United States"],"partnerCountries":[],"availableDataTypes":["pexp","meth_array","cnsm","ssm","mirna_seq","exp_seq","exp_array"],"ssmTestedDonorCount":80,"cnsmTestedDonorCount":153,"stsmTestedDonorCount":0,"sgvTestedDonorCount":0,"methSeqTestedDonorCount":0,"methArrayTestedDonorCount":150,"expSeqTestedDonorCount":151,"expArrayTestedDonorCount":57,"pexpTestedDonorCount":111,"mirnaSeqTestedDonorCount":157,"jcnTestedDonorCount":0,"totalDonorCount":168,"experimentalAnalysisPerformedDonorCounts":{"WGS":45,"RNA-Seq":151,"Bisulfite-Seq":2,"WXS":167,"miRNA-Seq":157},"experimentalAnalysisPerformedSampleCounts":{"WGS":117,"RNA-Seq":160,"Bisulfite-Seq":3,"WXS":371,"miRNA-Seq":161},"repository":["CGHub"]},{"id":"KIRP-US","icgcId":"74002","primarySite":"Kidney","name":"Kidney Renal Papillary Cell Carcinoma - TCGA, US","tumourType":"Renal cancer","tumourSubtype":"Papillary carcinoma","pubmedIds":[],"primaryCountries":["United States"],"partnerCountries":[],"availableDataTypes":["exp_array","ssm","cnsm","meth_array","exp_seq","mirna_seq"],"ssmTestedDonorCount":146,"cnsmTestedDonorCount":162,"stsmTestedDonorCount":0,"sgvTestedDonorCount":0,"methSeqTestedDonorCount":0,"methArrayTestedDonorCount":142,"expSeqTestedDonorCount":159,"expArrayTestedDonorCount":6,"pexpTestedDonorCount":0,"mirnaSeqTestedDonorCount":162,"jcnTestedDonorCount":0,"totalDonorCount":164,"experimentalAnalysisPerformedDonorCounts":{"WGS":31,"RNA-Seq":162,"WXS":161,"miRNA-Seq":162},"experimentalAnalysisPerformedSampleCounts":{"WGS":62,"RNA-Seq":191,"WXS":336,"miRNA-Seq":193},"repository":["CGHub"]},{"id":"LIHC-US","icgcId":"70271","primarySite":"Liver","name":"Liver Hepatocellular carcinoma - TCGA, US","tumourType":"Liver cancer","tumourSubtype":"Hepatocellular carcinoma","pubmedIds":[],"primaryCountries":["United States"],"partnerCountries":[],"availableDataTypes":["mirna_seq","exp_seq","meth_array","cnsm"],"ssmTestedDonorCount":0,"cnsmTestedDonorCount":143,"stsmTestedDonorCount":0,"sgvTestedDonorCount":0,"methSeqTestedDonorCount":0,"methArrayTestedDonorCount":149,"expSeqTestedDonorCount":141,"expArrayTestedDonorCount":0,"pexpTestedDonorCount":0,"mirnaSeqTestedDonorCount":145,"jcnTestedDonorCount":0,"totalDonorCount":151,"experimentalAnalysisPerformedDonorCounts":{"WGS":48,"RNA-Seq":141,"WXS":144,"miRNA-Seq":145},"experimentalAnalysisPerformedSampleCounts":{"WGS":96,"RNA-Seq":188,"WXS":317,"miRNA-Seq":191},"repository":["CGHub"]},{"id":"LICA-FR","icgcId":"821","primarySite":"Liver","name":"Liver Cancer - FR","tumourType":"Liver cancer","tumourSubtype":"Hepatocellular carcinoma (Secondary to alcohol and adiposity)","pubmedIds":[],"primaryCountries":["France"],"partnerCountries":[],"availableDataTypes":["cnsm","ssm"],"ssmTestedDonorCount":54,"cnsmTestedDonorCount":73,"stsmTestedDonorCount":0,"sgvTestedDonorCount":0,"methSeqTestedDonorCount":0,"methArrayTestedDonorCount":0,"expSeqTestedDonorCount":0,"expArrayTestedDonorCount":0,"pexpTestedDonorCount":0,"mirnaSeqTestedDonorCount":0,"jcnTestedDonorCount":0,"totalDonorCount":151,"experimentalAnalysisPerformedDonorCounts":{"WXS":54,"WGS":6,"non-NGS":73},"experimentalAnalysisPerformedSampleCounts":{"WXS":70,"WGS":6,"non-NGS":73},"repository":["EGA","GEO"]},{"id":"PACA-CA","icgcId":"810","primarySite":"Pancreas","name":"Pancreatic Cancer - CA","tumourType":"Pancreatic cancer","tumourSubtype":"Ductal adenocarcinoma","pubmedIds":[],"primaryCountries":["Canada"],"partnerCountries":["Australia"],"availableDataTypes":["sgv","jcn","exp_seq","cnsm","ssm"],"ssmTestedDonorCount":112,"cnsmTestedDonorCount":64,"stsmTestedDonorCount":0,"sgvTestedDonorCount":109,"methSeqTestedDonorCount":0,"methArrayTestedDonorCount":0,"expSeqTestedDonorCount":43,"expArrayTestedDonorCount":0,"pexpTestedDonorCount":0,"mirnaSeqTestedDonorCount":0,"jcnTestedDonorCount":43,"totalDonorCount":148,"experimentalAnalysisPerformedDonorCounts":{"WGS":46,"RNA-Seq":43,"AMPLICON":42,"WXS":84},"experimentalAnalysisPerformedSampleCounts":{"WGS":97,"RNA-Seq":45,"AMPLICON":47,"WXS":191},"repository":["EGA"]},{"id":"BRCA-UK","icgcId":"827","primarySite":"Breast","name":"Breast Triple Negative/Lobular Cancer - UK","tumourType":"Breast cancer","tumourSubtype":"Triple negative/lobular/other","pubmedIds":["22608083"],"primaryCountries":["United Kingdom"],"partnerCountries":[],"availableDataTypes":["cnsm","ssm","stsm"],"ssmTestedDonorCount":117,"cnsmTestedDonorCount":112,"stsmTestedDonorCount":45,"sgvTestedDonorCount":0,"methSeqTestedDonorCount":0,"methArrayTestedDonorCount":0,"expSeqTestedDonorCount":0,"expArrayTestedDonorCount":0,"pexpTestedDonorCount":0,"mirnaSeqTestedDonorCount":0,"jcnTestedDonorCount":0,"totalDonorCount":141,"experimentalAnalysisPerformedDonorCounts":{"WXS":124,"WGA":21},"experimentalAnalysisPerformedSampleCounts":{"WXS":124,"WGA":21},"repository":["EGA"]},{"id":"CMDI-UK","icgcId":"70117","primarySite":"Blood","name":"Chronic Myeloid Disorders - UK","tumourType":"Chronic Myeloid Disorders","tumourSubtype":"Myelodysplastic syndromes, myeloproliferative neoplasms & other chronic myeloid malignancies","pubmedIds":["21995386","21998214"],"primaryCountries":["United Kingdom"],"partnerCountries":[],"availableDataTypes":["ssm"],"ssmTestedDonorCount":129,"cnsmTestedDonorCount":0,"stsmTestedDonorCount":0,"sgvTestedDonorCount":0,"methSeqTestedDonorCount":0,"methArrayTestedDonorCount":0,"expSeqTestedDonorCount":0,"expArrayTestedDonorCount":0,"pexpTestedDonorCount":0,"mirnaSeqTestedDonorCount":0,"jcnTestedDonorCount":0,"totalDonorCount":129,"experimentalAnalysisPerformedDonorCounts":{"WXS":129},"experimentalAnalysisPerformedSampleCounts":{"WXS":129},"repository":["EGA"]},{"id":"CESC-US","icgcId":"70266","primarySite":"Cervix","name":"Cervical Squamous Cell Carcinoma - TCGA, US","tumourType":"Cervical cancer","tumourSubtype":"Cervical squamous cell carcinoma","pubmedIds":[],"primaryCountries":["United States"],"partnerCountries":[],"availableDataTypes":["meth_array","exp_seq","mirna_seq","cnsm"],"ssmTestedDonorCount":0,"cnsmTestedDonorCount":122,"stsmTestedDonorCount":0,"sgvTestedDonorCount":0,"methSeqTestedDonorCount":0,"methArrayTestedDonorCount":127,"expSeqTestedDonorCount":123,"expArrayTestedDonorCount":0,"pexpTestedDonorCount":0,"mirnaSeqTestedDonorCount":126,"jcnTestedDonorCount":0,"totalDonorCount":127,"experimentalAnalysisPerformedDonorCounts":{"WGS":13,"RNA-Seq":123,"WXS":123,"miRNA-Seq":126},"experimentalAnalysisPerformedSampleCounts":{"WGS":26,"RNA-Seq":127,"WXS":250,"miRNA-Seq":130},"repository":["CGHub"]},{"id":"RECA-EU","icgcId":"817","primarySite":"Kidney","name":"Renal Cell Cancer - EU/FR","tumourType":"Renal cancer","tumourSubtype":"Renal cell carcinoma (Focus on but not limited to clear cell subtype)","pubmedIds":[],"primaryCountries":["France","European Union"],"partnerCountries":[],"availableDataTypes":["ssm"],"ssmTestedDonorCount":95,"cnsmTestedDonorCount":0,"stsmTestedDonorCount":0,"sgvTestedDonorCount":0,"methSeqTestedDonorCount":0,"methArrayTestedDonorCount":0,"expSeqTestedDonorCount":0,"expArrayTestedDonorCount":0,"pexpTestedDonorCount":0,"mirnaSeqTestedDonorCount":0,"jcnTestedDonorCount":0,"totalDonorCount":122,"experimentalAnalysisPerformedDonorCounts":{"WGS":95},"experimentalAnalysisPerformedSampleCounts":{"WGS":95},"repository":["EGA"]},{"id":"LUSC-KR","primarySite":"Lung","name":"Lung Cancer - KR","tumourType":"Lung cancer","tumourSubtype":"Squamous cell carcinoma ","pubmedIds":[],"primaryCountries":["South Korea"],"partnerCountries":[],"availableDataTypes":["ssm"],"ssmTestedDonorCount":111,"cnsmTestedDonorCount":0,"stsmTestedDonorCount":0,"sgvTestedDonorCount":0,"methSeqTestedDonorCount":0,"methArrayTestedDonorCount":0,"expSeqTestedDonorCount":0,"expArrayTestedDonorCount":0,"pexpTestedDonorCount":0,"mirnaSeqTestedDonorCount":0,"jcnTestedDonorCount":0,"totalDonorCount":111,"experimentalAnalysisPerformedDonorCounts":{"WXS":111},"experimentalAnalysisPerformedSampleCounts":{"WXS":111},"repository":["EGA"]},{"id":"BLCA-CN","primarySite":"Bladder","name":"Bladder Cancer - CN","tumourType":"Bladder cancer","tumourSubtype":"Urothelial carcinoma","pubmedIds":[],"primaryCountries":["China"],"partnerCountries":[],"availableDataTypes":["ssm"],"ssmTestedDonorCount":103,"cnsmTestedDonorCount":0,"stsmTestedDonorCount":0,"sgvTestedDonorCount":0,"methSeqTestedDonorCount":0,"methArrayTestedDonorCount":0,"expSeqTestedDonorCount":0,"expArrayTestedDonorCount":0,"pexpTestedDonorCount":0,"mirnaSeqTestedDonorCount":0,"jcnTestedDonorCount":0,"totalDonorCount":103,"experimentalAnalysisPerformedDonorCounts":{"WXS":103},"experimentalAnalysisPerformedSampleCounts":{"WXS":103},"repository":["EGA"]},{"id":"LAML-KR","icgcId":"1002037","primarySite":"Blood","name":"Acute Myeloid Leukemia - KR","tumourType":"Blood cancer","tumourSubtype":"Acute myeloid leukemia","pubmedIds":[],"primaryCountries":["South Korea"],"partnerCountries":[],"availableDataTypes":["ssm"],"ssmTestedDonorCount":78,"cnsmTestedDonorCount":0,"stsmTestedDonorCount":0,"sgvTestedDonorCount":0,"methSeqTestedDonorCount":0,"methArrayTestedDonorCount":0,"expSeqTestedDonorCount":0,"expArrayTestedDonorCount":0,"pexpTestedDonorCount":0,"mirnaSeqTestedDonorCount":0,"jcnTestedDonorCount":0,"totalDonorCount":97,"experimentalAnalysisPerformedDonorCounts":{"WXS":68,"WGS":10},"experimentalAnalysisPerformedSampleCounts":{"WXS":68,"WGS":10},"repository":["EGA"]},{"id":"OV-AU","icgcId":"809","primarySite":"Ovary","name":"Ovarian Cancer - AU","tumourType":"Ovarian cancer","tumourSubtype":"Serous cystadenocarcinoma","pubmedIds":[],"primaryCountries":["Australia"],"partnerCountries":[],"availableDataTypes":["meth_array","ssm","cnsm","stsm","mirna_seq","exp_seq"],"ssmTestedDonorCount":93,"cnsmTestedDonorCount":93,"stsmTestedDonorCount":93,"sgvTestedDonorCount":0,"methSeqTestedDonorCount":0,"methArrayTestedDonorCount":93,"expSeqTestedDonorCount":86,"expArrayTestedDonorCount":0,"pexpTestedDonorCount":0,"mirnaSeqTestedDonorCount":93,"jcnTestedDonorCount":0,"totalDonorCount":93,"experimentalAnalysisPerformedDonorCounts":{"WGS":93},"experimentalAnalysisPerformedSampleCounts":{"WGS":115},"repository":["EGA"]},{"id":"ESCA-CN","icgcId":"1001734","primarySite":"Esophagus","name":"Esophageal Cancer - CN","tumourType":"Esophageal cancer","tumourSubtype":"Squamous carcinoma","pubmedIds":[],"primaryCountries":["China"],"partnerCountries":[],"availableDataTypes":["ssm"],"ssmTestedDonorCount":88,"cnsmTestedDonorCount":0,"stsmTestedDonorCount":0,"sgvTestedDonorCount":0,"methSeqTestedDonorCount":0,"methArrayTestedDonorCount":0,"expSeqTestedDonorCount":0,"expArrayTestedDonorCount":0,"pexpTestedDonorCount":0,"mirnaSeqTestedDonorCount":0,"jcnTestedDonorCount":0,"totalDonorCount":88,"experimentalAnalysisPerformedDonorCounts":{"WXS":71,"WGS":17},"experimentalAnalysisPerformedSampleCounts":{"WXS":71,"WGS":17},"repository":["EGA"]},{"id":"PAAD-US","icgcId":"74000","primarySite":"Pancreas","name":"Pancreatic Cancer - TCGA, US","tumourType":"Pancreatic cancer","tumourSubtype":"Adenocarcinoma","pubmedIds":[],"primaryCountries":["United States"],"partnerCountries":[],"availableDataTypes":["meth_array","cnsm","mirna_seq","exp_seq"],"ssmTestedDonorCount":0,"cnsmTestedDonorCount":72,"stsmTestedDonorCount":0,"sgvTestedDonorCount":0,"methSeqTestedDonorCount":0,"methArrayTestedDonorCount":72,"expSeqTestedDonorCount":69,"expArrayTestedDonorCount":0,"pexpTestedDonorCount":0,"mirnaSeqTestedDonorCount":69,"jcnTestedDonorCount":0,"totalDonorCount":73,"experimentalAnalysisPerformedDonorCounts":{"WXS":72,"RNA-Seq":69,"miRNA-Seq":69},"experimentalAnalysisPerformedSampleCounts":{"WXS":124,"RNA-Seq":71,"miRNA-Seq":71},"repository":["CGHub"]},{"id":"BOCA-UK","icgcId":"70116","primarySite":"Bone","name":"Bone Cancer - UK","tumourType":"Bone cancer","tumourSubtype":"Osteosarcoma/chondrosarcoma/rare subtypes","pubmedIds":[],"primaryCountries":["United Kingdom"],"partnerCountries":[],"availableDataTypes":["cnsm","ssm","stsm"],"ssmTestedDonorCount":66,"cnsmTestedDonorCount":48,"stsmTestedDonorCount":20,"sgvTestedDonorCount":0,"methSeqTestedDonorCount":0,"methArrayTestedDonorCount":0,"expSeqTestedDonorCount":0,"expArrayTestedDonorCount":0,"pexpTestedDonorCount":0,"mirnaSeqTestedDonorCount":0,"jcnTestedDonorCount":0,"totalDonorCount":69,"experimentalAnalysisPerformedDonorCounts":{"WXS":69},"experimentalAnalysisPerformedSampleCounts":{"WXS":69},"repository":["EGA"]},{"id":"MALY-DE","icgcId":"53049","primarySite":"Blood","name":"Malignant Lymphoma - DE","tumourType":"Malignant lymphoma","tumourSubtype":"Germinal center B-cell derived lymphomas","pubmedIds":["23143595"],"primaryCountries":["Germany"],"partnerCountries":[],"availableDataTypes":["exp_seq","mirna_seq","stsm","ssm"],"ssmTestedDonorCount":44,"cnsmTestedDonorCount":0,"stsmTestedDonorCount":26,"sgvTestedDonorCount":0,"methSeqTestedDonorCount":0,"methArrayTestedDonorCount":0,"expSeqTestedDonorCount":52,"expArrayTestedDonorCount":0,"pexpTestedDonorCount":0,"mirnaSeqTestedDonorCount":52,"jcnTestedDonorCount":0,"totalDonorCount":53,"experimentalAnalysisPerformedDonorCounts":{"WGS":44},"experimentalAnalysisPerformedSampleCounts":{"WGS":44},"repository":["EGA"]},{"id":"ORCA-IN","icgcId":"823","primarySite":"Head and neck","name":"Oral Cancer - IN","tumourType":"Oral cancer","tumourSubtype":"Gingivobuccal","pubmedIds":[],"primaryCountries":["India"],"partnerCountries":[],"availableDataTypes":["ssm"],"ssmTestedDonorCount":50,"cnsmTestedDonorCount":0,"stsmTestedDonorCount":0,"sgvTestedDonorCount":0,"methSeqTestedDonorCount":0,"methArrayTestedDonorCount":0,"expSeqTestedDonorCount":0,"expArrayTestedDonorCount":0,"pexpTestedDonorCount":0,"mirnaSeqTestedDonorCount":0,"jcnTestedDonorCount":0,"totalDonorCount":50,"experimentalAnalysisPerformedDonorCounts":{"WXS":50},"experimentalAnalysisPerformedSampleCounts":{"WXS":50},"repository":["EGA"]},{"id":"PAEN-AU","icgcId":"1003406","primarySite":"Pancreas","name":"Pancreatic Cancer Endocrine neoplasms - AU","tumourType":"Pancreatic cancer","tumourSubtype":"Endocrine neoplasm","pubmedIds":[],"primaryCountries":["Australia"],"partnerCountries":[],"availableDataTypes":["exp_array","meth_array","cnsm","ssm","exp_seq","stsm"],"ssmTestedDonorCount":31,"cnsmTestedDonorCount":34,"stsmTestedDonorCount":31,"sgvTestedDonorCount":0,"methSeqTestedDonorCount":0,"methArrayTestedDonorCount":23,"expSeqTestedDonorCount":17,"expArrayTestedDonorCount":30,"pexpTestedDonorCount":0,"mirnaSeqTestedDonorCount":0,"jcnTestedDonorCount":0,"totalDonorCount":49,"experimentalAnalysisPerformedDonorCounts":{"WXS":1,"WGS":31},"experimentalAnalysisPerformedSampleCounts":{"WXS":1,"WGS":31},"repository":["EGA"]},{"id":"EOPC-DE","icgcId":"53039","primarySite":"Prostate","name":"Early Onset Prostate Cancer - DE","tumourType":"Prostate cancer","tumourSubtype":"Early onset","pubmedIds":[],"primaryCountries":["Germany"],"partnerCountries":[],"availableDataTypes":["stsm","cnsm","ssm"],"ssmTestedDonorCount":11,"cnsmTestedDonorCount":11,"stsmTestedDonorCount":11,"sgvTestedDonorCount":0,"methSeqTestedDonorCount":0,"methArrayTestedDonorCount":0,"expSeqTestedDonorCount":0,"expArrayTestedDonorCount":0,"pexpTestedDonorCount":0,"mirnaSeqTestedDonorCount":0,"jcnTestedDonorCount":0,"totalDonorCount":17,"experimentalAnalysisPerformedDonorCounts":{"WGS":11},"experimentalAnalysisPerformedSampleCounts":{"WGS":11},"repository":["EGA"]},{"id":"ESAD-UK","icgcId":"70708","primarySite":"Esophagus","name":"Esophageal Adenocarcinoma - UK","tumourType":"Esophageal cancer","tumourSubtype":"Esophageal adenocarcinoma","pubmedIds":[],"primaryCountries":["United Kingdom"],"partnerCountries":[],"availableDataTypes":["ssm"],"ssmTestedDonorCount":16,"cnsmTestedDonorCount":0,"stsmTestedDonorCount":0,"sgvTestedDonorCount":0,"methSeqTestedDonorCount":0,"methArrayTestedDonorCount":0,"expSeqTestedDonorCount":0,"expArrayTestedDonorCount":0,"pexpTestedDonorCount":0,"mirnaSeqTestedDonorCount":0,"jcnTestedDonorCount":0,"totalDonorCount":16,"experimentalAnalysisPerformedDonorCounts":{"WGS":16},"experimentalAnalysisPerformedSampleCounts":{"WGS":16},"repository":["EGA"]},{"id":"THCA-SA","icgcId":"1000244","primarySite":"Head and neck","name":"Thyroid Cancer - SA","tumourType":"Thyroid cancer","tumourSubtype":"Papillary thyroid carcinoma","pubmedIds":[],"primaryCountries":["Saudi Arabia"],"partnerCountries":[],"availableDataTypes":["ssm","cnsm"],"ssmTestedDonorCount":15,"cnsmTestedDonorCount":15,"stsmTestedDonorCount":0,"sgvTestedDonorCount":0,"methSeqTestedDonorCount":0,"methArrayTestedDonorCount":0,"expSeqTestedDonorCount":0,"expArrayTestedDonorCount":0,"pexpTestedDonorCount":0,"mirnaSeqTestedDonorCount":0,"jcnTestedDonorCount":0,"totalDonorCount":15,"experimentalAnalysisPerformedDonorCounts":{"WGS":15},"experimentalAnalysisPerformedSampleCounts":{"WGS":15},"repository":["EGA"]},{"id":"PRAD-CA","icgcId":"70542","primarySite":"Prostate","name":"Prostate Adenocarcinoma - CA","tumourType":"Prostate cancer","tumourSubtype":"Adenocarcinoma","pubmedIds":[],"primaryCountries":["Canada"],"partnerCountries":[],"availableDataTypes":["ssm"],"ssmTestedDonorCount":9,"cnsmTestedDonorCount":0,"stsmTestedDonorCount":0,"sgvTestedDonorCount":0,"methSeqTestedDonorCount":0,"methArrayTestedDonorCount":0,"expSeqTestedDonorCount":0,"expArrayTestedDonorCount":0,"pexpTestedDonorCount":0,"mirnaSeqTestedDonorCount":0,"jcnTestedDonorCount":0,"totalDonorCount":10,"experimentalAnalysisPerformedDonorCounts":{"WGS":9},"experimentalAnalysisPerformedSampleCounts":{"WGS":27},"repository":["EGA"]},{"id":"RECA-CN","primarySite":"Kidney","name":"Renal Cancer - CN","tumourType":"Renal cancer","tumourSubtype":"Clear cell renal cell carcinoma","pubmedIds":[],"primaryCountries":["China"],"partnerCountries":[],"availableDataTypes":["ssm"],"ssmTestedDonorCount":10,"cnsmTestedDonorCount":0,"stsmTestedDonorCount":0,"sgvTestedDonorCount":0,"methSeqTestedDonorCount":0,"methArrayTestedDonorCount":0,"expSeqTestedDonorCount":0,"expArrayTestedDonorCount":0,"pexpTestedDonorCount":0,"mirnaSeqTestedDonorCount":0,"jcnTestedDonorCount":0,"totalDonorCount":10,"experimentalAnalysisPerformedDonorCounts":{"WXS":10},"experimentalAnalysisPerformedSampleCounts":{"WXS":10},"repository":["EGA"]},{"id":"GACA-CN","icgcId":"811","primarySite":"Stomach","name":"Gastric Cancer - CN","tumourType":"Gastric cancer","tumourSubtype":"Intestinal- and diffuse-type","pubmedIds":[],"primaryCountries":["China"],"partnerCountries":[],"availableDataTypes":["ssm"],"ssmTestedDonorCount":9,"cnsmTestedDonorCount":0,"stsmTestedDonorCount":0,"sgvTestedDonorCount":0,"methSeqTestedDonorCount":0,"methArrayTestedDonorCount":0,"expSeqTestedDonorCount":0,"expArrayTestedDonorCount":0,"pexpTestedDonorCount":0,"mirnaSeqTestedDonorCount":0,"jcnTestedDonorCount":0,"totalDonorCount":9,"experimentalAnalysisPerformedDonorCounts":{"WXS":9},"experimentalAnalysisPerformedSampleCounts":{"WXS":9},"repository":["EGA"]},{"id":"PRAD-UK","icgcId":"71331","primarySite":"Prostate","name":"Prostate Adenocarcinoma - UK","tumourType":"Prostate cancer","tumourSubtype":"Adenocarcinoma","pubmedIds":[],"primaryCountries":["United Kingdom"],"partnerCountries":[],"availableDataTypes":["stsm","ssm","cnsm"],"ssmTestedDonorCount":3,"cnsmTestedDonorCount":3,"stsmTestedDonorCount":3,"sgvTestedDonorCount":0,"methSeqTestedDonorCount":0,"methArrayTestedDonorCount":0,"expSeqTestedDonorCount":0,"expArrayTestedDonorCount":0,"pexpTestedDonorCount":0,"mirnaSeqTestedDonorCount":0,"jcnTestedDonorCount":0,"totalDonorCount":3,"experimentalAnalysisPerformedDonorCounts":{"WGS":3},"experimentalAnalysisPerformedSampleCounts":{"WGS":12},"repository":["EGA"]}],"pagination":{"count":49,"total":49,"size":100,"from":1,"page":1,"pages":1,"sort":"totalDonorCount","order":"desc"}}';
+}
+
+function getRadius(d) {
+   //return 0.06 * d.fields["_summary._total_donor_count"];
+   //return 1.2 * Math.sqrt(d.fields["_summary._total_donor_count"]);
+   // return 1.2 * Math.sqrt(d.fields["totalDonorCount"]);
+   return 1.2 * Math.sqrt(d.totalDonorCount);
+}
+
+function chargeFunc(d) {
+   return -Math.pow(getRadius(d), 2.0) / 8.0;
+}
+
+function centered(alpha) {
+   return function(d) {
+      d.x = d.x + (width/2 - d.x) * alpha *  TWEAK_UNTIL_IT_LOOKS_NICE;
+      d.y = d.y + (height/2 - d.y) * alpha *  TWEAK_UNTIL_IT_LOOKS_NICE;
+   };
+}
+
+function splitted(alpha) {
+   return function(d) {
+      if (d.id.charAt(0) <= "M") {
+         d.x = d.x + (200 - d.x) * alpha *  TWEAK_UNTIL_IT_LOOKS_NICE;
+         d.y = d.y + (height/2 - d.y) * alpha *  TWEAK_UNTIL_IT_LOOKS_NICE;
+      } else {
+         d.x = d.x + (600 - d.x) * alpha *  TWEAK_UNTIL_IT_LOOKS_NICE;
+         d.y = d.y + (height/2 - d.y) * alpha *  TWEAK_UNTIL_IT_LOOKS_NICE;
+      }
+   };
+}
+
+
+function splitted2(alpha) {
+   return function(d) {
+
+      var idx = siteMap.indexOf(d.primarySite);
+      var X = idx % 5 + 1;
+      var Y = Math.floor(idx/5) + 1;
+
+      d.x = d.x + (X*90 - d.x) * alpha *  TWEAK_UNTIL_IT_LOOKS_NICE;
+      d.y = d.y + (Y*90 - d.y) * alpha *  TWEAK_UNTIL_IT_LOOKS_NICE;
+   };
+}
+
+
+function byClass(v) {
+  return '.' + v.replace(/ /g, '-');
+}
+
+
+function renderDetail(d) {
+  var temp = {};
+  if (displayMode === 'sites') {
+    var data = d3.selectAll(byClass(d.primarySite)).data();
+    console.log(data);
+    temp.id = d.primarySite + ' (' + _.pluck(data, 'id').join(', ') + ')';
+
+    dataTypes.forEach(function(t) {
+      temp[t] = d3.sum( _.pluck(data, t));
+    })
+
+    renderDetail2(temp);
+  } else {
+    renderDetail2(d);
+  }
+
+}
+
+
+function renderDetail2(proj) {
+   var yoffset = 30;
+   var h = 14;
+
+   svgDetail.selectAll('*').remove();
+   
+   svgDetail.append('text')
+      .attr('x', 20)
+      .attr('y', yoffset/2)
+      .style('font-size', '12px')
+      .style('font-family', 'Tahoma')
+      .text(proj.id);
+
+   
+   dataTypes.forEach(function(type, idx) {
+      svgDetail.append("text")
+         .attr("x", 190)
+         .attr("text-anchor", "end")
+         .attr("y", yoffset+(0.5+idx) * h)
+         .style("font-size", "9px")
+         .style("font-family", "Tahoma")
+         .style("fill", function() {
+            if (proj[type] === 0) {
+               return "#bbbbbb";
+            } else {
+               return "#666666";
+            }
+         })
+         .text(type + " - " + proj[type]);
+
+
+      svgDetail.append("rect")
+         .attr("x", 200)
+         .attr("y", yoffset+(idx * h))
+         .attr("height", 10)
+         .attr("width", 0)
+         .style("fill", cHover)
+         .style("stroke", "#BBBBBB")
+         .style("opacity", 0.75)
+         .transition()
+         .duration( 1.4*proj[type] )
+         .attr("width", function() {
+            if (!proj[type]) return 0;
+            return proj[type] * 0.10;
+         });
+         
+   });
+}
+
+
+function force_center() {
+   force.gravity(0.01)
+      .charge(chargeFunc)
+      .friction(0.9)
+      .on("tick", function(t) {
+         nodes.each(centered(t.alpha))
+            .attr("cx", function(d) { return d.x; })
+            .attr("cy", function(d) { return d.y; });
+      });
+   force.start();
+}
+
+function force_split() {
+   force.gravity(0.01)
+      .charge(chargeFunc)
+      .friction(0.9)
+      .on("tick", function(t) {
+         // nodes.each(splitted(t.alpha))
+         nodes.each(splitted2(t.alpha))
+            .attr("cx", function(d) { return d.x; })
+            .attr("cy", function(d) { return d.y; });
+      });
+   force.start();
+}
+
+
+function start( data ) {
+   force = d3.layout.force()
+      .nodes(data)
+      .size([width, height]);
+
+   nodes = svg.selectAll('circle')
+      .data(data);
+
+   nodes.enter()
+      .append('circle')
+      .attr('class', function(d) {
+         return d.primarySite.replace(/ /g, '-') + ' ' + d.id;
+      })
+      .attr('r', function(d) {
+         return getRadius(d);
+      })
+      .style('fill', cNormal)
+      .style('stroke', '#777777')
+      .style('stroke-width', 1.5)
+      .style('opacity', 0.5)
+      .on('mouseover', function(d) {
+         if (displayMode === 'normal') {
+           d3.select(this).style('stroke-width', 4);
+           d3.select(this).style('stroke', '#44DDFF');
+         } else {
+           d3.selectAll(byClass(d.primarySite)).style('stroke-width', 4);
+           d3.selectAll(byClass(d.primarySite)).style('stroke', '#44DDFF');
+         }
+         renderDetail(d);
+      })
+      .on('mouseout', function(d) {
+         if (displayMode === 'normal') {
+           d3.select(this).style('stroke-width', 1.5);
+           d3.select(this).style('stroke', '#777777');
+         } else {
+           d3.selectAll(byClass(d.primarySite)).style('stroke-width', 1.5);
+           d3.selectAll(byClass(d.primarySite)).style('stroke', '#777777');
+         }
+         svgDetail.selectAll('*').remove();
+      })
+
+      force_center();
+
+   d3.select('#button')
+     .on("click", function() {
+        if (isCentered) {
+           force_split();
+           displayMode = 'sites';
+        } else {
+           force_center();
+           displayMode = 'normal';
+        }
+        isCentered = !isCentered;
+     });
+}
+
+start(JSON.parse( response())['hits'] );
+
+/*
+d3.json("/projects", function(d) {
+   var projects = d.hits;
+   start(projects);
+});
+*/
+
+response();
+
+</script>
+</html>
