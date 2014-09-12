@@ -13,7 +13,8 @@ body {
 </head>
 <body>
 <div>
-   <button id="button">By primary site</button>
+   <button id="mode">By primary site</button>
+   <button id="dimension">By mutation</button>
    <br>
    <div style="float:left">
       <svg id="vis" width="600" height="500"></svg>
@@ -24,6 +25,8 @@ body {
 <script>
 
 var displayMode = 'normal';
+var displayDimension = 'donors';
+
 var svg = d3.select("#vis").append("g");
 var svgDetail = d3.select("#detail").append("g");
 var width = 500;
@@ -69,8 +72,23 @@ var dataTypes = [
   'expSeqTestedDonorCount',
   'expArrayTestedDonorCount',
   'pexpTestedDonorCount'
- ];
+];
 
+
+function recalc() {
+  if (displayDimension === 'mutations') {
+    d3.selectAll('circle')
+      .transition()
+      .duration(700)
+      .attr('r', getRadius2);
+  } else {
+    d3.selectAll('circle')
+      .transition()
+      .duration(700)
+      .attr('r', getRadius);
+  }
+  force.start();
+}
 
 
 function cNormal(d) {
@@ -92,8 +110,21 @@ function getRadius(d) {
    return 1.2 * Math.sqrt(d.totalDonorCount);
 }
 
+function getRadius2(d) {
+   //return 0.06 * d.fields["_summary._total_donor_count"];
+   //return 1.2 * Math.sqrt(d.fields["_summary._total_donor_count"]);
+   // return 1.2 * Math.sqrt(d.fields["totalDonorCount"]);
+   return 1.2 * Math.sqrt(d.ssmTestedDonorCount);
+}
+
+
+
 function chargeFunc(d) {
-   return -Math.pow(getRadius(d), 2.0) / 8.0;
+   if (displayDimension === 'donors') {
+     return -Math.pow(getRadius(d), 2.0) / 8.0;
+   } else {
+     return -Math.pow(getRadius2(d), 2.0) / 8.0;
+   }
 }
 
 function centered(alpha) {
@@ -174,6 +205,7 @@ function renderDetail2(proj) {
          .attr("y", yoffset+(0.5+idx) * h)
          .style("font-size", "9px")
          .style("font-family", "Tahoma")
+         .style('opacity', 0)
          .style("fill", function() {
             if (proj[type] === 0) {
                return "#bbbbbb";
@@ -181,7 +213,10 @@ function renderDetail2(proj) {
                return "#666666";
             }
          })
-         .text(type + " - " + proj[type]);
+         .text(type + " - " + proj[type])
+         .transition()
+         .duration(400)
+         .style('opacity', 1);
 
 
       svgDetail.append("rect")
@@ -272,16 +307,30 @@ function start( data ) {
 
       force_center();
 
-   d3.select('#button')
+   d3.select('#mode')
      .on("click", function() {
         if (isCentered) {
            force_split();
            displayMode = 'sites';
+           d3.select(this).text('Default');
         } else {
            force_center();
            displayMode = 'normal';
+           d3.select(this).text('By primary site');
         }
         isCentered = !isCentered;
+     });
+
+   d3.select('#dimension')
+     .on('click', function() {
+       if (displayDimension === 'donors') {
+         displayDimension = 'mutations';
+         d3.select(this).text('By donors');
+       } else {
+         displayDimension = 'donors';
+         d3.select(this).text('By mutations');
+       }
+       recalc();
      });
 }
 

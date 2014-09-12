@@ -20,16 +20,31 @@ body {
 </body>
 
 <script>
-var data = [ [1, 2, 3, 2, 6], 
-             [3, 5, 6, 8, 4], 
-             [3, 4, 0, 9, 3], 
-             [1, 7, 4, 3, 8], 
-             [2, 8, 1, 8, 1] 
-           ];
 
+var data = [];
+for (var i=0; i < 50; i++) data.push([]);
+
+data.forEach(function(d, i) {
+  // d[i] = [];
+  for (var i=0; i < 20; i++) {
+    d[i] = Math.random()*100;
+  }
+});
+
+/*
+var data = [ [1, 2, 3, 2, 6, 9, 4, 3, 2, 2, 2], 
+             [3, 5, 6, 8, 4, 1, 1, 1, 3, 3, 3], 
+             [3, 4, 0, 9, 3, 3, 3, 1, 4, 4, 4], 
+             [1, 7, 4, 3, 8, 4, 9, 4, 5, 5, 3], 
+             [2, 8, 1, 8, 1, 3, 8, 9, 6, 6, 2],
+             [2, 8, 1, 8, 1, 3, 8, 9, 6, 6, 2],
+             [7, 0, 1, 8, 0, 2, 5, 9, 7, 7, 1] 
+           ];
+*/
 
 var config = {
-  width: 200
+  width: 300,
+  height: 300
 };
 var heatmap = new Heatmap(data, config);
 heatmap.render( d3.select('#canvas').node() );
