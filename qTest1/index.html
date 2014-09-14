@@ -1,0 +1,132 @@
+<html>
+<head>
+<title> Drag/Link Test </title>
+<script src="d3.v3.min.js"></script>
+<style>
+body {
+   margin: 1em;
+   font-family: Tahoma;
+   font-size: 0.8em;
+}
+
+path.link {
+    fill: none;
+    stroke: #333;
+    stroke-width: 6px;
+    cursor: default;
+}
+
+</style>
+</head>
+<body>
+<div style="float:left" id="canvas">
+</div>
+<div>Right Panel</div>
+</body>
+<script>
+
+var nodeCounter = 0;
+
+var nodes = [];
+var edges = [];
+
+var h = 600, w = 500;
+var svg = d3.select('#canvas').append('svg').attr('width', w).attr('height', h);
+var defs = svg.append('svg:defs');
+
+var nodeHover = null;
+var nodeSelected = null;
+
+svg.append('rect')
+  .attr('width', w)
+  .attr('height', h)
+  .style('fill', '#EEEEEE');
+
+
+// define arrow markers for leading arrow
+defs.append('svg:marker')
+  .attr('id', 'mark-end-arrow')
+  .attr('viewBox', '0 -5 10 10')
+  .attr('refX', 7)
+  .attr('markerWidth', 3.5)
+  .attr('markerHeight', 3.5)
+  .attr('orient', 'auto')
+  .append('svg:path')
+  .attr('d', 'M0,-5L10,0L0,5');
+
+
+
+// Only for dragging
+var draggingEdge = svg.append('svg:path')
+  .attr('class', 'link dragline ')
+  .attr('d', 'M0,0L0,0')
+  .style('marker-end', 'url(#mark-end-arrow)');
+ 
+
+
+// When dragging is performed on a node
+var circleDrag = d3.behavior.drag()
+  .origin(function(d) {
+    console.log('in drag', d, d.x, d.y);
+    return {x: d.x, y: d.y};
+  })
+  .on('drag', function(d) {
+    var coord = d3.mouse(this);
+    var shiftKey = d3.event.sourceEvent.shiftKey;
+
+    if (shiftKey) {
+      draggingEdge.style('visibility', 'visible');
+      draggingEdge.attr('d', 'M' + d.x + ',' + d.y + 'L' + coord[0] + ',' + coord[1]);
+    } else {
+      d3.select(this).attr('cx', coord[0]).attr('cy', coord[1]);
+    }
+  })
+  .on('dragend', function(d) {
+    draggingEdge.style('visibility', 'hidden');
+    if (nodeHover) {
+      console.log('Relation should go from ', d, ' to ', nodeHover);
+    }
+  });
+
+
+svg.on('mousemove', function() {
+  var coord = d3.mouse(this);
+});
+
+svg.on('mousedown', function() {
+  var coord = d3.mouse(this);
+  nodeCounter ++;
+
+  d3.event.stopPropagation();
+
+  nodes.push({
+    id: nodeCounter
+  });
+
+  svg.append('circle')
+    .datum({id:nodeCounter, x:coord[0], y:coord[1]})
+    .attr('class', 'node')
+    .attr('cx', coord[0])
+    .attr('cy', coord[1])
+    .attr('r', 20)
+    .style('stroke', '#888')
+    .style('stroke-width', 2)
+    .style('fill', '#7799FF')
+    .on('mouseover', function(d) {
+      nodeHover = d;
+      d3.select(this).style('fill', '#EE6611');
+    })
+    .on('mouseout', function() {
+      d3.select(this).style('fill', '#7799FF');
+    })
+    .on('mousedown', function() {
+      d3.event.stopPropagation();
+    })
+    .call(circleDrag);
+    
+});
+
+ 
+
+</script>
+</html>
