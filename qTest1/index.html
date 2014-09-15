@@ -2,6 +2,7 @@
 <head>
 <title> Drag/Link Test </title>
 <script src="d3.v3.min.js"></script>
+<script src="underscore-min.js"></script>
 <style>
 body {
    margin: 1em;
@@ -19,11 +20,19 @@ path.link {
 </style>
 </head>
 <body>
-<div style="float:left" id="canvas">
+<div style="display:inline-block" id="canvas">
 </div>
-<div>Right Panel</div>
+<div style="display:inline-block; vertical-align:top"> 
+    Right Panel
+    <hr>
+    <div id="details"></div>
+</div>
 </body>
 <script>
+
+var colour_normal   = '#7799FF';
+var colour_hover    = '#EE6611';
+var colour_selected = '#BB8822';
 
 var nodeCounter = 0;
 
@@ -33,21 +42,34 @@ var edges = [];
 var h = 600, w = 500;
 var svg = d3.select('#canvas').append('svg').attr('width', w).attr('height', h);
 var defs = svg.append('svg:defs');
-
+var linkGroup;
 var nodeHover = null;
 var nodeSelected = null;
+
+var selectedNodeId = -1;
 
 svg.append('rect')
   .attr('width', w)
   .attr('height', h)
   .style('fill', '#EEEEEE');
 
+linkGroup = svg.append('g');
 
 // define arrow markers for leading arrow
 defs.append('svg:marker')
   .attr('id', 'mark-end-arrow')
   .attr('viewBox', '0 -5 10 10')
   .attr('refX', 7)
+  .attr('markerWidth', 3.5)
+  .attr('markerHeight', 3.5)
+  .attr('orient', 'auto')
+  .append('svg:path')
+  .attr('d', 'M0,-5L10,0L0,5');
+
+defs.append('svg:marker')
+  .attr('id', 'end-arrow')
+  .attr('viewBox', '0 -5 10 10')
+  .attr('refX', 18)
   .attr('markerWidth', 3.5)
   .attr('markerHeight', 3.5)
   .attr('orient', 'auto')
@@ -62,6 +84,38 @@ var draggingEdge = svg.append('svg:path')
   .attr('d', 'M0,0L0,0')
   .style('marker-end', 'url(#mark-end-arrow)');
  
+
+
+function _line(x1, y1, x2, y2) {
+  return 'M' + x1 + ',' + y1 + 'L' + x2 + ',' + y2;
+}
+
+
+// TODO: Not efficient
+function updateAllEdges() {
+  d3.selectAll('.edge').remove();
+
+  // Rebuild
+  nodes.forEach(function(node) {
+    console.log(node);
+    node.children.forEach(function(child) {
+      linkGroup.append('svg:path')
+        .attr('class', 'link dragline edge')
+        .attr('d', _line(node.x, node.y, child.x, child.y))
+        .style('marker-end', 'url(#end-arrow)');
+    });
+  });
+}
+
+
+function propagateNode(node) {
+}
+
+function removeNode(node) {
+}
+
+function removeEdge(from, to) {
+}
 
 
 // When dragging is performed on a node
@@ -79,12 +133,33 @@ var circleDrag = d3.behavior.drag()
       draggingEdge.attr('d', 'M' + d.x + ',' + d.y + 'L' + coord[0] + ',' + coord[1]);
     } else {
       d3.select(this).attr('cx', coord[0]).attr('cy', coord[1]);
+      d3.select(this).datum().x = coord[0];
+      d3.select(this).datum().y = coord[1];
+      updateAllEdges();
     }
   })
   .on('dragend', function(d) {
     draggingEdge.style('visibility', 'hidden');
+
+    // TODO: Need to check for cycles
     if (nodeHover) {
-      console.log('Relation should go from ', d, ' to ', nodeHover);
+      var from = d;
+      var to   = nodeHover;
+
+      if (_.pluck(from.children, 'id').indexOf(to.id) >= 0 || from.id === to.id) {
+        console.warn('Relationship already exist between ' + from.id + ' and ' + to.id);
+        return;
+      } else {
+        console.log('Relation should go from ', d, ' to ', nodeHover);
+        from.children.push( to );
+        to.parents.push( from );
+
+        linkGroup.append('svg:path')
+          .attr('class', 'link dragline edge')
+          .attr('d', _line(from.x, from.y, to.x, to.y))
+          .style('marker-end', 'url(#end-arrow)');
+      }
+
     }
   });
 
@@ -94,17 +169,31 @@ svg.on('mousemove', function() {
 });
 
 svg.on('mousedown', function() {
+
+  if (selectedNodeId != -1) {
+    selectedNodeId = -1;
+    d3.selectAll('circle').style('fill', '#7799FF');
+    return;
+  }
+
   var coord = d3.mouse(this);
   nodeCounter ++;
 
   d3.event.stopPropagation();
 
-  nodes.push({
-    id: nodeCounter
-  });
+  var newNode = {
+    id:nodeCounter, 
+    x:coord[0], 
+    y:coord[1], 
+    children:[],
+    parents:[],
+    filter: {id:nodeCounter}
+  };
+
+  nodes.push(newNode);
 
   svg.append('circle')
-    .datum({id:nodeCounter, x:coord[0], y:coord[1]})
+    .datum(newNode)
     .attr('class', 'node')
     .attr('cx', coord[0])
     .attr('cy', coord[1])
@@ -114,16 +203,90 @@ svg.on('mousedown', function() {
     .style('fill', '#7799FF')
     .on('mouseover', function(d) {
       nodeHover = d;
-      d3.select(this).style('fill', '#EE6611');
+      d3.select(this).style('fill', colour_hover);
     })
-    .on('mouseout', function() {
-      d3.select(this).style('fill', '#7799FF');
+    .on('mouseout', function(d) {
+      if (selectedNodeId === d.id) {
+        d3.select(this).style('fill', colour_selected);
+      } else {
+        d3.select(this).style('fill', colour_normal);
+      }
     })
-    .on('mousedown', function() {
+    .on('mousedown', function(d) {
       d3.event.stopPropagation();
+
+      if (d3.event.shiftKey) return;
+
+      // Reset
+      if (selectedNodeId > 0) {
+        d3.selectAll('circle').filter(function(d) { return d.id  === selectedNodeId; }).style('fill', '#7799FF');
+      }
+
+      d3.select(this).style('fill', colour_selected);
+      selectedNodeId = d.id;
+
+      var details = d3.select('#details');
+      details.selectAll('*').remove();
+      details.append('div').text('ID:' + d.id);
+      details.append('div').text('X-Pos:' + Math.floor(d.x));
+      details.append('div').text('Y-Pos:' + Math.floor(d.y));
+      details.append('div').text('Children: [' + _.pluck(d.children, 'id') + ']');
+      details.append('div').text('Parents: [' + _.pluck(d.parents, 'id') + ']');
+      details.append('span').text('Filter:');
+      details.append('input').attr('size', 80).attr('value', JSON.stringify(d.filter));
+      details.append('div');
+      details.append('button').text('Update').on('click', function() {
+        console.log('updating filter for ' +  d.id + ' to ' + d3.select('input').node().value );
+        // TODO: check
+        d.filter = JSON.parse( d3.select('input').node().value);
+      });
+      
+
     })
     .call(circleDrag);
     
+});
+
+
+d3.select(window).on('keydown', function() {
+  console.log(d3.event.keyCode);
+  if (d3.event.keyCode === 46 || d3.event.keyCode === 8) { // delete  or backspace
+    d3.event.preventDefault();
+    if (selectedNodeId > 0) {
+
+      console.log('delete key pressed');
+
+      // Delete node
+      // 1) remove references
+      nodes.forEach(function(node) {
+        var index = -1;
+
+        index = _.pluck(node.children, 'id').indexOf( selectedNodeId );
+        if (index >= 0) {
+          node.children.splice(index, 1);  
+        }
+
+        index = _.pluck(node.parents, 'id').indexOf( selectedNodeId );
+        if (index >= 0) {
+          node.parents.splice(index, 1);
+        }
+      });
+
+      // 2) update graphics
+      d3.selectAll('circle').filter(function(d) { return d.id === selectedNodeId; }).remove();
+
+      // 3) delete node
+      var index = _.pluck(nodes, 'id').indexOf(selectedNodeId);
+      nodes.splice(index, 1);
+
+      // 4) update edges
+      updateAllEdges();
+
+      selectedNodeId = -1;
+    }
+
+
+  }
 });
 
  
