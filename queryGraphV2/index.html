@@ -26,12 +26,14 @@ text.label {
 
 text.label2 {
    font-family: Tahoma;
+   font-size: 0.75em;
    fill: #555555;
 }
 
 
 text.label3 {
    font-family: Tahoma;
+   font-size: 0.75em;
    fill: #5555FF;
 }
 
@@ -43,7 +45,7 @@ text.label3 {
 <div style="display:inline-block" id="canvas">
 </div>
 <div style="display:inline-block; vertical-align:top"> 
-    Right Panel
+    Details
     <hr>
     <div id="details"></div>
 </div>
@@ -51,8 +53,8 @@ text.label3 {
 <script>
 
 var colour_normal   = '#7799FF';
-var colour_hover    = '#EE6611';
-var colour_selected = '#BB8822';
+var colour_hover    = '#EE7700';
+var colour_selected = '#33CC66';
 
 var nodeCounter = 0;
 
@@ -64,8 +66,9 @@ var svg = d3.select('#canvas').append('svg').attr('width', w).attr('height', h);
 var defs = svg.append('svg:defs');
 var linkGroup;
 var nodeHover = null;
-var nodeSelected = null;
+var edgeHover = null;
 
+var selectedEdgeId = [-1, -1];
 var selectedNodeId = -1;
 
 svg.append('rect')
@@ -124,7 +127,23 @@ function updateAllEdges() {
       linkGroup.append('svg:path')
         .attr('class', 'link dragline edge')
         .attr('d', _line(node.x, node.y, child.x, child.y))
-        .style('marker-end', 'url(#end-arrow)');
+        .style('marker-end', 'url(#end-arrow)')
+        .on('mouseover', function(d) {
+           d3.select(this).style('stroke', colour_hover);
+           edgeHover = 1;
+        })
+        .on('mouseout', function(d) {
+           edgeHover = 0;
+           if (node.id === selectedEdgeId[0] && child.id === selectedEdgeId[1]) return;
+           d3.select(this).style('stroke', '#CCC');
+        })
+        .on('click', function(d) {
+           d3.event.stopPropagation();
+           selectedEdgeId = [node.id, child.id];
+           d3.select(this).style('stroke', colour_selected);
+           d3.select('#details').append('div').text(node.id + ' --> ' + child.id);
+        });
+
     });
   });
 
@@ -143,7 +162,7 @@ function updateAllEdges() {
       return JSON.stringify( d.filter );
     });
 
-    svg.append('text').attr('class', 'label3').attr('x', d.x - 18).attr('y', d.y + 55).style('pointer-events', 'none').text(function() {
+    svg.append('text').attr('class', 'label3').attr('x', d.x - 18).attr('y', d.y + 50).style('pointer-events', 'none').text(function() {
       var res = _.cloneDeep(d.filter);
       _getAncestors(d).forEach(function(ancestor) {
         res = _mergeFilters(res, ancestor.filter);
@@ -286,6 +305,17 @@ svg.on('mousedown', function() {
     return;
   }
 
+  if (selectedEdgeId[0] > -1) {
+    selectedEdgeId = [-1, -1];
+    updateAllEdges();
+    return;
+  }
+
+  if (edgeHover === 1) {
+    d3.select('#details').selectAll('*').remove();
+    return;
+  }
+
   var coord = d3.mouse(this);
 
   d3.event.stopPropagation();
@@ -366,6 +396,7 @@ svg.on('mousedown', function() {
         d.filter = JSON.parse( d3.select('input').node().value);
         updateAllEdges();
       });
+      updateAllEdges();
       
 
     })
@@ -384,6 +415,24 @@ d3.select(window).on('keydown', function() {
     if (document.activeElement.id === 'filterInput') return;
 
     d3.event.preventDefault();
+
+    if (selectedEdgeId[0] > 0) {
+      var from = _.find(nodes, function(n) { return n.id === selectedEdgeId[0]; });
+      var to   = _.find(nodes, function(n) { return n.id === selectedEdgeId[1]; });
+
+      var fromIdx = _.pluck(from.children, 'id').indexOf( selectedEdgeId[1] );
+      if (fromIdx >= 0) {
+        from.children.splice(fromIdx, 1);
+      }
+
+      var toIdx = _.pluck(to.parents, 'id').indexOf( selectedEdgeId[0] );
+      if (toIdx >= 0) {
+        to.parents.splice(toIdx, 1);
+      }
+
+      selectedEdgeId = [-1, -1];
+      updateAllEdges();
+    }
 
     if (selectedNodeId > 0) {
 
