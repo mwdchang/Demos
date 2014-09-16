@@ -1,3 +1,4 @@
+<!DOCTYPE HTML>
 <html>
 <head>
 <title> Drag/Link Test </title>
@@ -15,6 +16,12 @@ path.link {
     stroke: #333;
     stroke-width: 6px;
     cursor: default;
+}
+
+text.label {
+   font-family: Tahoma;
+   font-weight: bold;
+   fill: #E8E8E8;
 }
 
 </style>
@@ -91,7 +98,7 @@ function _line(x1, y1, x2, y2) {
 }
 
 
-// TODO: Not efficient
+// TODO: Not efficient, especially for labels
 function updateAllEdges() {
   d3.selectAll('.edge').remove();
 
@@ -105,6 +112,15 @@ function updateAllEdges() {
         .style('marker-end', 'url(#end-arrow)');
     });
   });
+
+  // Rebulid labels
+  d3.selectAll('.label').remove();
+  d3.selectAll('.node').each(function(d) {
+    svg.append('text').attr('class', 'label').attr('x', d.x - 4).attr('y', d.y + 4).text(function() {
+      return d.id;
+    });
+  });
+
 }
 
 
@@ -115,6 +131,32 @@ function removeNode(node) {
 }
 
 function removeEdge(from, to) {
+}
+
+
+function _dist(x1, y1, x2, y2) {
+  return Math.sqrt( (x1-x2)*(x1-x2) + (y1-y2)*(y1-y2));
+}
+
+
+// This can have duplicates
+function _getAncestors(node) {
+  console.log('checking', node.id);
+  if (!node.parents || node.parents.length === 0) { 
+    return [];
+  }
+  var ancestors = [];
+  node.parents.forEach(function(p) {
+    console.log('adding ancestor ', p.id);
+    ancestors.push(p);
+    ancestors = ancestors.concat( _getAncestors(p) );
+  });
+  console.log(node.id, ancestors);
+  return ancestors;
+}
+
+function getAncestors(node) {
+  var ancestors = [];
 }
 
 
@@ -173,13 +215,23 @@ svg.on('mousedown', function() {
   if (selectedNodeId != -1) {
     selectedNodeId = -1;
     d3.selectAll('circle').style('fill', '#7799FF');
+    d3.select('#details').selectAll('*').remove();
     return;
   }
 
   var coord = d3.mouse(this);
-  nodeCounter ++;
 
   d3.event.stopPropagation();
+
+  // Don't allow node to be created too close to each other to prevent
+  // weird interactive behaviours if elements are overlapped.
+  var nodeTooClose = false;
+  nodes.forEach(function(node) {
+    if ( _dist(node.x, node.y, coord[0], coord[1]) < 40) nodeTooClose = true;
+  });
+  if (nodeTooClose === true) return;
+
+  nodeCounter ++;
 
   var newNode = {
     id:nodeCounter, 
@@ -217,7 +269,7 @@ svg.on('mousedown', function() {
 
       if (d3.event.shiftKey) return;
 
-      // Reset
+      // Reset any previously selected node. Should probably use class
       if (selectedNodeId > 0) {
         d3.selectAll('circle').filter(function(d) { return d.id  === selectedNodeId; }).style('fill', '#7799FF');
       }
@@ -232,6 +284,7 @@ svg.on('mousedown', function() {
       details.append('div').text('Y-Pos:' + Math.floor(d.y));
       details.append('div').text('Children: [' + _.pluck(d.children, 'id') + ']');
       details.append('div').text('Parents: [' + _.pluck(d.parents, 'id') + ']');
+      details.append('div').text('Ancestors: [' + _.pluck(_getAncestors(d), 'id') + ']');
       details.append('span').text('Filter:');
       details.append('input').attr('size', 80).attr('value', JSON.stringify(d.filter));
       details.append('div');
@@ -244,6 +297,8 @@ svg.on('mousedown', function() {
 
     })
     .call(circleDrag);
+
+  updateAllEdges();
     
 });
 
@@ -281,7 +336,6 @@ d3.select(window).on('keydown', function() {
 
       // 4) update edges
       updateAllEdges();
-
       selectedNodeId = -1;
     }
 
