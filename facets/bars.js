@@ -4,7 +4,7 @@
 *
 * Interactive bar chart
 *
-* Contracts 
+* Contracts
 * - map: fn(data, [idx]) => { key, value, label }
 *
 * - focusFunc
@@ -21,7 +21,7 @@
 *   var data = [3, 6, 8, 3];
 *   var bar = new BarChart(data, data, null);
 *   bar.render( d3.select('#canvas_id'))
-*   
+*
 *
 ******************************************************************************/
 var BarChart = function( originalData, currentData, config ) {
@@ -34,15 +34,21 @@ var BarChart = function( originalData, currentData, config ) {
     width: 300,
     height: 150,
     margin: 5,
-    padding: 20,
+    padding: 25,
     title: 'Bar Chart',
-    map: function( data, idx ) {
+    mapFunc: function( data, idx ) {
       return {
         key: idx,
         value: data,
         label: 'label' + idx
       }
-    }
+    },
+    totalFunc: function( data ) {
+      return d3.sum(data, function(d) { return d.value; });
+    },
+    clickFunc: function(d) {
+      d3.event.stopPropagation();
+    },
   };
 
   config = config || {};
@@ -56,12 +62,12 @@ var BarChart = function( originalData, currentData, config ) {
 
 
   // ---------------------------------------------------------------------
-  // | <----------------------------- margin --------------------------> | 
-  // | <- margin -> | <--------------- vis -------------> | <- margin -> | 
-  // | <- margin -> |                                     | <- margin -> | 
+  // | <----------------------------- margin --------------------------> |
+  // | <- margin -> | <--------------- vis -------------> | <- margin -> |
+  // | <- margin -> |                                     | <- margin -> |
   // | <- margin -> | <- padding -> | chart | <-padding-> | <- margin -> |
   // | <- margin -> |                                     | <- margin -> |
-  // | <----------------------------- margin --------------------------> | 
+  // | <----------------------------- margin --------------------------> |
   // ---------------------------------------------------------------------
   config.visWidth  = config.width - 2.0 * config.margin;
   config.visHeight = config.height - 2.0 * config.margin;
@@ -82,8 +88,8 @@ var BarChart = function( originalData, currentData, config ) {
   };
 
 
-  this.originalData = originalData.map(config.map); // Normalize
-  this.currentData = currentData.map(config.map);   // Normalize
+  this.originalData = originalData.map(config.mapFunc); // Normalize
+  this.currentData = currentData.map(config.mapFunc);   // Normalize
 
   // TODO: temp
   var max = 0;
@@ -91,9 +97,14 @@ var BarChart = function( originalData, currentData, config ) {
      if (max < d.value) max = d.value;
   });
 
+  // Not always true !!
+  this.total = config.totalFunc(this.originalData);
+
+  console.log('total', this.total);
+
 
   // This looks like it is reversed but it is not, SVG coord has origin (0, 0) at top-left
-  // but the chart has origin at bottom-left. TODO
+  // but the chart has origin at bottom-left.
   //this.yScale = d3.scale.linear().domain([d3.max(originalData), 0]).range([0, config.chartHeight]);
   this.yScale = d3.scale.linear().domain([max, 0]).range([0, config.chartHeight]);
   this.yAxis = d3.svg.axis().scale(this.yScale).orient('left').ticks(2).tickSize(3);
@@ -106,7 +117,7 @@ var BarChart = function( originalData, currentData, config ) {
 
 
 ////////////////////////////////////////////////////////////////////////////////
-// 
+//
 // Initialize SVG canvas and render the chart.
 // The DOM is structure as follows:
 //
@@ -120,7 +131,7 @@ var BarChart = function( originalData, currentData, config ) {
 //
 // Data is bound to control_group, which uses control_group_rect as a hidden elem
 // to handle extremely variances, which make interactions difficult.
-// 
+//
 ////////////////////////////////////////////////////////////////////////////////
 BarChart.prototype.render = function( element ) {
   console.log(this.config, this.originalData, this.currentData);
@@ -130,7 +141,7 @@ BarChart.prototype.render = function( element ) {
   var svg, vis, chart, title, controlGroup;
   this.element = element;
 
-  
+
   svg = d3.select(element).append('svg').attr('width' , _this.config.width).attr('height', _this.config.height);
 
   vis = svg.append('g').attr('transform', _this.translate(_this.config.margin, _this.config.margin));
@@ -138,12 +149,12 @@ BarChart.prototype.render = function( element ) {
     .attr('width', _this.config.visWidth)
     .attr('height', _this.config.visHeight)
     .style('fill', '#FFFFFF');
-   
+
   chart = vis.append('g').attr('transform', _this.translate(_this.config.padding, _this.config.padding))
   chart.append('rect')
     .attr('width', _this.config.chartWidth)
     .attr('height', _this.config.chartHeight)
-    .style('fill', '#EEEEEE');
+    .style('fill', '#FFFFFF');
 
 
   vis.append('g')
@@ -155,15 +166,23 @@ BarChart.prototype.render = function( element ) {
   vis.append('g')
     .classed('axis', true)
     .attr('transform', _this.translate(_this.config.padding, _this.config.padding))
-    .call(_this.yAxis); 
+    .call(_this.yAxis);
+
+  // This will do for x-axis for now
+  vis.append('g')
+    .classed('axis', true)
+    .attr('transform', _this.translate(_this.config.padding, _this.config.padding + _this.config.chartHeight))
+    .append('path')
+    .attr('d', 'M0,0L' + (_this.config.chartWidth + 10) + ',0');
+
 
   controlGroup = chart.selectAll('g')
     .data(_this.originalData)
     .enter()
     .append('g')
     .attr('class', 'control_group')
-    .attr('transform', function(d, idx) { 
-      return _this.translate(idx * (_this.config.barWidth + _this.config.barSpacing), 0); 
+    .attr('transform', function(d, idx) {
+      return _this.translate(idx * (_this.config.barWidth + _this.config.barSpacing), 0);
     });
 
   var cMap = {};
@@ -182,22 +201,29 @@ BarChart.prototype.render = function( element ) {
     .style('fill', '#FFFFFF')
     .style('opacity', 0.0);
 
- 
+
   // User interaction
   controlGroup.on('mouseover', function() {
     var cval = d3.select(this).select('.bar_current').datum();
-    console.log(cval);
 
     d3.select(this).select('.bar_current').style('fill', '#FF8800');
     d3.select(this).style('fill', '#FF8800');
     chart.append('rect').classed('debug', true).attr('x', 0).attr('y', _this.yScale(cval.cvalue)).attr('height', 1).attr('width', _this.config.chartWidth).style('fill', '#339933');
     chart.append('text').classed('debug', true).attr('x', _this.config.chartWidth+2).attr('y', _this.yScale(cval.cvalue)+5).text(cval.cvalue);
     chart.append('text').classed('debug', true).attr('x', 80).attr('y', _this.config.chartHeight + 15).text(cval.label + ': ' + cval.cvalue);
+
+    var percent = Math.round( 1000*cval.cvalue / _this.total ) / 10;
+    vis.append('rect').classed('debug', true).attr('x', _this.config.padding).attr('y', _this.config.visHeight - 3)
+      .attr('width', _this.config.chartWidth*0.8).attr('height', 4).style('fill', '#DCD');
+    vis.append('rect').classed('debug', true).attr('x', _this.config.padding).attr('y', _this.config.visHeight - 3)
+      .attr('width', _this.config.chartWidth*0.8 * (cval.cvalue/_this.total)).attr('height', 4).style('fill', _this.config.colourFill);
+    vis.append('text').classed('debug', true).attr('x', _this.config.padding + _this.config.chartWidth*0.8 + 2).attr('y', _this.config.visHeight+2).text( cval.cvalue + ' ('+percent +'%)');
   });
   controlGroup.on('mouseout', function() {
     d3.select(this).select('.bar_current').style('fill', _this.config.colourFill);
     svg.selectAll('.debug').remove();
   });
+  controlGroup.on('click', _this.config.clickFunc);
 
 
   // Build original values
@@ -238,7 +264,7 @@ BarChart.prototype.render = function( element ) {
 
 
 BarChart.prototype.update = function( currentData ) {
-  this.currentData = currentData.map(this.config.map);
+  this.currentData = currentData.map(this.config.mapFunc);
   var _this = this;
 
   var cMap = {};
@@ -249,7 +275,7 @@ BarChart.prototype.update = function( currentData ) {
   d3.select(this.element)
     .selectAll('.control_group')
     .each(function(d, i) {
-      
+
       // update
       if (cMap[d.key]) {
         d.cvalue = cMap[d.key].value;
@@ -263,12 +289,15 @@ BarChart.prototype.update = function( currentData ) {
         .transition()
         .duration(_this.config.transitionTime)
         .attr('y', _this.yScale(d.cvalue))
-        .attr('height', function(d) { return _this.config.chartHeight - _this.yScale(d.cvalue)}); 
+        .attr('height', function(d) { return _this.config.chartHeight - _this.yScale(d.cvalue)});
     });
 };
 
 
 BarChart.prototype.destroy = function() {
+   // Attempt to free up resources
+   this.currentData = null;
+   this.originalData = null;
    d3.select(this.element).remove();
 };
 

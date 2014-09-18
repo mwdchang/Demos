@@ -1,4 +1,4 @@
-<html>
+<nhtml>
 <head>
    <title> Bars Test </title>
    <script  src="d3.v3.min.js"></script>
@@ -27,7 +27,7 @@
    }
 
    .debug {
-      font-size: 0.75rem;
+      font-size: 0.65rem;
    }
 
    .axis {
@@ -65,13 +65,15 @@
      height: 250,
      barSpacing: 15,
      title: 'Chart with custom mappings',
-     map: function(d, i) {
+     mapFunc: function(d, i) {
        return {
          key: d.label,
          value: Math.floor(Math.sqrt( d.val)),
          label: d.label + '(' + (i+1) + ')'
        };
-     }
+     },
+     totalFunc: function( data ) { return 11; },
+     clickFunc: function(d) { d3.event.stopPropagation(); alert('clicked ' + d.key); }
    };
 
    var objOrig = [ {label: 'first', val: 60}, {label: 'second', val:40}, {label: 'third', val:30}];
@@ -91,6 +93,7 @@
 
 
    var flag = -1;
+   
    document.onclick = function() {
      if (flag) {
        barTest.update( simpleCurr );
@@ -101,6 +104,7 @@
      }
      flag = !flag;
    };
+   
 </script>
 </html>
 
