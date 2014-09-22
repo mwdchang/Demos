@@ -27,26 +27,26 @@
 var BarChart = function( originalData, currentData, config ) {
 
   var defaultConfig = {
-    colourOutline: '#AAAAAA',
+    colourOutline: '#FFFFFF',
     colourFill: '#7799EE',
     barSpacing: 1.5,
     transitionTime:  600,
-    width: 300,
-    height: 150,
+    width: 390,
+    height: 120,
     margin: 5,
-    padding: 25,
+    padding: 29,
     title: 'Bar Chart',
     mapFunc: function( data, idx ) {
       return {
         key: idx,
         value: data,
         label: 'label' + idx
-      }
+      };
     },
     totalFunc: function( data ) {
       return d3.sum(data, function(d) { return d.value; });
     },
-    clickFunc: function(d) {
+    clickFunc: function() {
       d3.event.stopPropagation();
     },
   };
@@ -79,8 +79,8 @@ var BarChart = function( originalData, currentData, config ) {
   // | <- s -> | <- B1 -> | <- s -> | <- B2 -> | ... | <- s -> | <- BN -> |
   // ----------------------------------------------------------------------
   config.barWidth = (config.chartWidth - originalData.length * config.barSpacing) / (originalData.length);
-  config.barWidth = Math.max( config.barWidth, 2.0 );
-
+  //config.barWidth = Math.max( config.barWidth, 2.0 );
+  config.barWidth = Math.max( config.barWidth, 1.0 );
 
   // Helper functions
   this.translate = function(x, y) {
@@ -94,13 +94,13 @@ var BarChart = function( originalData, currentData, config ) {
   // TODO: temp
   var max = 0;
   this.originalData.forEach(function(d) {
-     if (max < d.value) max = d.value;
+    if (max < d.value) {
+      max = d.value;
+    }
   });
 
-  // Not always true !!
   this.total = config.totalFunc(this.originalData);
-
-  console.log('total', this.total);
+  this.highlightedItems = {};
 
 
   // This looks like it is reversed but it is not, SVG coord has origin (0, 0) at top-left
@@ -134,11 +134,11 @@ var BarChart = function( originalData, currentData, config ) {
 //
 ////////////////////////////////////////////////////////////////////////////////
 BarChart.prototype.render = function( element ) {
-  console.log(this.config, this.originalData, this.currentData);
+  //console.log(this.config, this.originalData, this.currentData);
 
   var _this = this;
   var config = _this.config;
-  var svg, vis, chart, title, controlGroup;
+  var svg, vis, chart, controlGroup;
   this.element = element;
 
 
@@ -150,7 +150,7 @@ BarChart.prototype.render = function( element ) {
     .attr('height', _this.config.visHeight)
     .style('fill', '#FFFFFF');
 
-  chart = vis.append('g').attr('transform', _this.translate(_this.config.padding, _this.config.padding))
+  chart = vis.append('g').attr('transform', _this.translate(_this.config.padding, _this.config.padding));
   chart.append('rect')
     .attr('width', _this.config.chartWidth)
     .attr('height', _this.config.chartHeight)
@@ -171,7 +171,7 @@ BarChart.prototype.render = function( element ) {
   // This will do for x-axis for now
   vis.append('g')
     .classed('axis', true)
-    .attr('transform', _this.translate(_this.config.padding, _this.config.padding + _this.config.chartHeight))
+    .attr('transform', _this.translate(_this.config.padding, _this.config.padding + _this.config.chartHeight - 1))
     .append('path')
     .attr('d', 'M0,0L' + (_this.config.chartWidth + 10) + ',0');
 
@@ -208,26 +208,57 @@ BarChart.prototype.render = function( element ) {
 
     d3.select(this).select('.bar_current').style('fill', '#FF8800');
     d3.select(this).style('fill', '#FF8800');
-    chart.append('rect').classed('debug', true).attr('x', 0).attr('y', _this.yScale(cval.cvalue)).attr('height', 1).attr('width', _this.config.chartWidth).style('fill', '#339933');
-    chart.append('text').classed('debug', true).attr('x', _this.config.chartWidth+2).attr('y', _this.yScale(cval.cvalue)+5).text(cval.cvalue);
-    chart.append('text').classed('debug', true).attr('x', 80).attr('y', _this.config.chartHeight + 15).text(cval.label + ': ' + cval.cvalue);
+
+    chart.append('rect')
+      .classed('debug', true)
+      .attr('x', 0)
+      .attr('y', _this .yScale(cval.cvalue))
+      .attr('height', 1)
+      .attr('width', _this.config.chartWidth)
+      .style('fill', '#339933');
+
+    chart.append('text')
+      .classed('debug', true)
+      .attr('x', _this.config.chartWidth+2)
+      .attr('y', _this.yScale(cval.cvalue)+5)
+      .text(cval.cvalue);
+
+    chart.append('text')
+      .classed('debug', true)
+      .attr('x', 80)
+      .attr('y', _this.config.chartHeight + 15)
+      .text(cval.label + ': ' + cval.cvalue);
 
     var percent = Math.round( 1000*cval.cvalue / _this.total ) / 10;
-    vis.append('rect').classed('debug', true).attr('x', _this.config.padding).attr('y', _this.config.visHeight - 3)
-      .attr('width', _this.config.chartWidth*0.8).attr('height', 4).style('fill', '#DCD');
-    vis.append('rect').classed('debug', true).attr('x', _this.config.padding).attr('y', _this.config.visHeight - 3)
-      .attr('width', _this.config.chartWidth*0.8 * (cval.cvalue/_this.total)).attr('height', 4).style('fill', _this.config.colourFill);
-    vis.append('text').classed('debug', true).attr('x', _this.config.padding + _this.config.chartWidth*0.8 + 2).attr('y', _this.config.visHeight+2).text( cval.cvalue + ' ('+percent +'%)');
+    vis.append('rect')
+      .classed('debug', true)
+      .attr('x', _this.config.padding)
+      .attr('y', _this.config.visHeight - 3)
+      .attr('width', _this.config.chartWidth*0.8)
+      .attr('height', 4).style('fill', '#DCD');
+
+    vis.append('rect')
+      .classed('debug', true)
+      .attr('x', _this.config.padding)
+      .attr('y', _this.config.visHeight - 3)
+      .attr('width', _this.config.chartWidth*0.8 * (cval.cvalue/_this.total))
+      .attr('height', 4).style('fill', _this.config.colourFill);
+    vis.append('text')
+      .classed('debug', true)
+      .attr('x', _this.config.padding + _this.config.chartWidth*0.8 + 2)
+      .attr('y', _this.config.visHeight+2).text( cval.cvalue + ' ('+percent +'%)');
   });
-  controlGroup.on('mouseout', function() {
-    d3.select(this).select('.bar_current').style('fill', _this.config.colourFill);
+  controlGroup.on('mouseout', function(d) {
+    if (! _this.highlightedItems[d.key]) {
+      d3.select(this).select('.bar_current').style('fill', _this.config.colourFill);
+    }
     svg.selectAll('.debug').remove();
   });
   controlGroup.on('click', _this.config.clickFunc);
 
 
   // Build original values
-  controlGroup.each(function(d,i) {
+  controlGroup.each(function(d) {
     d3.select(this)
       .append('rect')
       .attr('class', 'bar_original')
@@ -241,7 +272,7 @@ BarChart.prototype.render = function( element ) {
   });
 
   // Build current values
-  controlGroup.each(function(d,i) {
+  controlGroup.each(function(d) {
     if ( ! cMap[d.key]) {
       d.cvalue = 0;
     } else {
@@ -274,7 +305,7 @@ BarChart.prototype.update = function( currentData ) {
 
   d3.select(this.element)
     .selectAll('.control_group')
-    .each(function(d, i) {
+    .each(function(d) {
 
       // update
       if (cMap[d.key]) {
@@ -289,15 +320,51 @@ BarChart.prototype.update = function( currentData ) {
         .transition()
         .duration(_this.config.transitionTime)
         .attr('y', _this.yScale(d.cvalue))
-        .attr('height', function(d) { return _this.config.chartHeight - _this.yScale(d.cvalue)});
+        .attr('height', function(d) { return _this.config.chartHeight - _this.yScale(d.cvalue); });
     });
 };
 
 
+BarChart.prototype.toggleHighlight = function( key ) {
+  var config = this.config;
+  var _this = this;
+  d3.select(this.element)
+    .selectAll('.control_group')
+    .each(function(d) {
+      var control = d3.select(this).select('.control_group_rect');
+
+      if (d.key !== key) {
+        return;
+      }
+
+      if (control.style('opacity') <= 0) {
+        d3.select(this).select('.control_group_rect').style('fill', '#EEEEEE').style('opacity', 0.3);
+        d3.select(this).select('.bar_current').style('fill', '#FF8800');
+        _this.highlightedItems[key] = 1;
+      } else {
+        d3.select(this).select('.control_group_rect').style('fill', '#FFFFFF').style('opacity', 0);
+        d3.select(this).select('.bar_current').style('fill', config.colourFill);
+        delete _this.highlightedItems[key];
+      }
+    });
+};
+
+BarChart.prototype.reset = function() {
+  var config = this.config;
+  var _this = this;
+
+  _this.highlightedItems = {};
+  d3.selectAll('.control_group')
+    .each(function() {
+      d3.select('.control_group_rect').style('fill', 'none').style('opacity', 0);
+      d3.select('.bar_current').style('fill', config.colourFill);
+    });
+};
+
 BarChart.prototype.destroy = function() {
-   // Attempt to free up resources
-   this.currentData = null;
-   this.originalData = null;
-   d3.select(this.element).remove();
+  // Attempt to free up resources
+  this.currentData = null;
+  this.originalData = null;
+  d3.select(this.element).remove();
 };
 
