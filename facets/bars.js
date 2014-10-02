@@ -7,31 +7,20 @@
 * Contracts
 * - map: fn(data, [idx]) => { key, value, label }
 *
-* - focusFunc
-* - selectFunc
-* - deselectFunc
-* - convertDataPointFunc
-*
-* Expected
-*  config.valueWidth
-*  config.valueHeight
-*
-*
 * Usage:
 *   var data = [3, 6, 8, 3];
 *   var bar = new BarChart(data, data, null);
 *   bar.render( d3.select('#canvas_id'))
 *
-*
 ******************************************************************************/
 var BarChart = function( originalData, currentData, config ) {
 
   var defaultConfig = {
-    colourOutline: '#FFFFFF',
+    colourOutline: '#505050',
     colourFill: '#7799EE',
     barSpacing: 1.5,
     transitionTime:  600,
-    width: 390,
+    width: 370,
     height: 120,
     margin: 5,
     padding: 29,
@@ -107,7 +96,7 @@ var BarChart = function( originalData, currentData, config ) {
   // but the chart has origin at bottom-left.
   //this.yScale = d3.scale.linear().domain([d3.max(originalData), 0]).range([0, config.chartHeight]);
   this.yScale = d3.scale.linear().domain([max, 0]).range([0, config.chartHeight]);
-  this.yAxis = d3.svg.axis().scale(this.yScale).orient('left').ticks(2).tickSize(3);
+  this.yAxis = d3.svg.axis().scale(this.yScale).orient('left').ticks(2).tickSize(3).tickFormat(d3.format('s'));
 
 
   // Finish up initialization
@@ -138,7 +127,7 @@ BarChart.prototype.render = function( element ) {
 
   var _this = this;
   var config = _this.config;
-  var svg, vis, chart, controlGroup;
+  var svg, vis, chart, controlGroup, title, axis;
   this.element = element;
 
 
@@ -157,14 +146,16 @@ BarChart.prototype.render = function( element ) {
     .style('fill', '#FFFFFF');
 
 
-  vis.append('g')
+  title = vis.append('g')
     .attr('transform', _this.translate(2, 11))
     .append('text')
+    .classed('bar-title', true)
     .text(_this.config.title);
 
 
   vis.append('g')
     .classed('axis', true)
+    .classed('test-test', true)
     .attr('transform', _this.translate(_this.config.padding, _this.config.padding))
     .call(_this.yAxis);
 
@@ -182,7 +173,7 @@ BarChart.prototype.render = function( element ) {
     .append('g')
     .attr('class', 'control_group')
     .attr('transform', function(d, idx) {
-      return _this.translate(idx * (_this.config.barWidth + _this.config.barSpacing), 0);
+      return _this.translate(1 + idx * (_this.config.barWidth + _this.config.barSpacing), 0);
     });
 
   var cMap = {};
@@ -205,48 +196,44 @@ BarChart.prototype.render = function( element ) {
   // User interaction
   controlGroup.on('mouseover', function() {
     var cval = d3.select(this).select('.bar_current').datum();
+    // var percent = Math.round( 1000*cval.cvalue / _this.total ) / 10;
 
     d3.select(this).select('.bar_current').style('fill', '#FF8800');
-    d3.select(this).style('fill', '#FF8800');
+    // d3.select(this).style('fill', '#FF8800');
 
     chart.append('rect')
       .classed('debug', true)
       .attr('x', 0)
       .attr('y', _this .yScale(cval.cvalue))
-      .attr('height', 1)
+      .attr('height', 0.5)
       .attr('width', _this.config.chartWidth)
-      .style('fill', '#339933');
+      .style('fill', '#555');
 
-    chart.append('text')
-      .classed('debug', true)
-      .attr('x', _this.config.chartWidth+2)
-      .attr('y', _this.yScale(cval.cvalue)+5)
-      .text(cval.cvalue);
+    vis.append('g').attr('class', 'debug')
+      .attr('transform', _this.translate(config.padding, config.visHeight-5))
+      .append('text')
+      .text(cval.label);
 
-    chart.append('text')
-      .classed('debug', true)
-      .attr('x', 80)
-      .attr('y', _this.config.chartHeight + 15)
-      .text(cval.label + ': ' + cval.cvalue);
-
-    var percent = Math.round( 1000*cval.cvalue / _this.total ) / 10;
+    /*
     vis.append('rect')
       .classed('debug', true)
       .attr('x', _this.config.padding)
-      .attr('y', _this.config.visHeight - 3)
-      .attr('width', _this.config.chartWidth*0.8)
+      .attr('y', _this.config.visHeight - 10)
+      .attr('width', _this.config.chartWidth*0.5)
       .attr('height', 4).style('fill', '#DCD');
 
     vis.append('rect')
       .classed('debug', true)
       .attr('x', _this.config.padding)
-      .attr('y', _this.config.visHeight - 3)
-      .attr('width', _this.config.chartWidth*0.8 * (cval.cvalue/_this.total))
+      .attr('y', _this.config.visHeight - 10)
+      .attr('width', _this.config.chartWidth*0.5 * (cval.cvalue/_this.total))
       .attr('height', 4).style('fill', _this.config.colourFill);
+
     vis.append('text')
       .classed('debug', true)
-      .attr('x', _this.config.padding + _this.config.chartWidth*0.8 + 2)
-      .attr('y', _this.config.visHeight+2).text( cval.cvalue + ' ('+percent +'%)');
+      .attr('x', _this.config.padding + _this.config.chartWidth*0.5 + 2)
+      .attr('y', _this.config.visHeight-5).text( cval.cvalue + ' ('+percent +'%)');
+    */
   });
   controlGroup.on('mouseout', function(d) {
     if (! _this.highlightedItems[d.key]) {
@@ -267,6 +254,7 @@ BarChart.prototype.render = function( element ) {
       .attr('width', _this.config.barWidth)
       .attr('height', (config.chartHeight - _this.yScale(d.value)))
       .attr('stroke', config.colourOutline)
+      .attr('stroke-width', 0.5)
       .style('fill', 'None')
       .style('opacity', 0.4);
   });
@@ -286,7 +274,7 @@ BarChart.prototype.render = function( element ) {
       .attr('y', _this.yScale(d.cvalue))
       .attr('width', _this.config.barWidth)
       .attr('height', (config.chartHeight - _this.yScale(d.cvalue)))
-      .attr('stroke', function() { return config.colourOutline; })
+      //.attr('stroke', function() { return config.colourOutline; })
       .style('fill', _this.config.colourFill)
       .style('opacity', 0.8);
   });
@@ -302,6 +290,19 @@ BarChart.prototype.update = function( currentData ) {
   _this.currentData.forEach(function(d) {
     cMap[d.key] = d;
   });
+
+
+  // === Test start ===
+  var max = 0;
+  this.currentData.forEach(function(d) {
+    if (max < d.value) {
+      max = d.value;
+    }
+  });
+  _this.yScale = d3.scale.linear().domain([max, 0]).range([0, _this.config.chartHeight]);
+  _this.yAxis = d3.svg.axis().scale(_this.yScale).orient('left').ticks(2).tickSize(3).tickFormat(d3.format('s'));
+  d3.select(_this.element).select('.test-test').transition().duration(450).call(_this.yAxis);
+  // === Test end ===
 
   d3.select(this.element)
     .selectAll('.control_group')
@@ -325,6 +326,8 @@ BarChart.prototype.update = function( currentData ) {
 };
 
 
+/* Should remove this, doesn't work the way I think it should... */
+/*
 BarChart.prototype.toggleHighlight = function( key ) {
   var config = this.config;
   var _this = this;
@@ -337,6 +340,7 @@ BarChart.prototype.toggleHighlight = function( key ) {
         return;
       }
 
+
       if (control.style('opacity') <= 0) {
         d3.select(this).select('.control_group_rect').style('fill', '#EEEEEE').style('opacity', 0.3);
         d3.select(this).select('.bar_current').style('fill', '#FF8800');
@@ -348,6 +352,31 @@ BarChart.prototype.toggleHighlight = function( key ) {
       }
     });
 };
+*/
+
+
+
+BarChart.prototype.setHightlight = function( keys ) {
+  var config = this.config;
+  var _this = this;
+  d3.select(this.element)
+    .selectAll('.control_group')
+    .each(function(d) {
+      // var control = d3.select(this).select('.control_group_rect');
+
+      if (_.contains(keys, d.key)) {
+        d3.select(this).select('.control_group_rect').style('fill', '#EEEEEE').style('opacity', 0.3);
+        d3.select(this).select('.bar_current').style('fill', '#FF8800');
+        _this.highlightedItems[d.key] = 1;
+      } else {
+        d3.select(this).select('.control_group_rect').style('fill', '#FFFFFF').style('opacity', 0);
+        d3.select(this).select('.bar_current').style('fill', config.colourFill);
+        delete _this.highlightedItems[d.key];
+      }
+    });
+};
+
+
 
 BarChart.prototype.reset = function() {
   var config = this.config;
