@@ -4,9 +4,6 @@
 *
 * Interactive bar chart
 *
-* Contracts
-* - map: fn(data, [idx]) => { key, value, label }
-*
 * Usage:
 *   var data = [3, 6, 8, 3];
 *   var bar = new BarChart(data, data, null);
@@ -16,15 +13,16 @@
 var BarChart = function( originalData, currentData, config ) {
 
   var defaultConfig = {
+    title: 'Bar Chart',
     colourOutline: '#505050',
     colourFill: '#7799EE',
     barSpacing: 1.5,
-    transitionTime:  600,
     width: 370,
     height: 120,
     margin: 5,
     padding: 29,
-    title: 'Bar Chart',
+    transitionTime:  600,
+    rescaleAxis: true,
     mapFunc: function( data, idx ) {
       return {
         key: idx,
@@ -43,7 +41,7 @@ var BarChart = function( originalData, currentData, config ) {
   config = config || {};
 
   Object.keys(defaultConfig).forEach(function (key) {
-    if (! config[key]) {
+    if (! config.hasOwnProperty(key)) {
       config[key] = defaultConfig[key];
     }
   });
@@ -131,18 +129,18 @@ BarChart.prototype.render = function( element ) {
   this.element = element;
 
 
-  svg = d3.select(element).append('svg').attr('width' , _this.config.width).attr('height', _this.config.height);
+  svg = d3.select(element).append('svg').attr('width', config.width).attr('height', config.height);
 
-  vis = svg.append('g').attr('transform', _this.translate(_this.config.margin, _this.config.margin));
+  vis = svg.append('g').attr('transform', _this.translate(config.margin, config.margin));
   vis.append('rect')
-    .attr('width', _this.config.visWidth)
-    .attr('height', _this.config.visHeight)
+    .attr('width', config.visWidth)
+    .attr('height', config.visHeight)
     .style('fill', '#FFFFFF');
 
-  chart = vis.append('g').attr('transform', _this.translate(_this.config.padding, _this.config.padding));
+  chart = vis.append('g').attr('transform', _this.translate(config.padding, config.padding));
   chart.append('rect')
-    .attr('width', _this.config.chartWidth)
-    .attr('height', _this.config.chartHeight)
+    .attr('width', config.chartWidth)
+    .attr('height', config.chartHeight)
     .style('fill', '#FFFFFF');
 
 
@@ -150,21 +148,22 @@ BarChart.prototype.render = function( element ) {
     .attr('transform', _this.translate(2, 11))
     .append('text')
     .classed('bar-title', true)
-    .text(_this.config.title);
+    .text(config.title);
 
 
   vis.append('g')
     .classed('axis', true)
     .classed('test-test', true)
-    .attr('transform', _this.translate(_this.config.padding, _this.config.padding))
+    .attr('transform', _this.translate(config.padding, config.padding))
     .call(_this.yAxis);
 
   // This will do for x-axis for now
   vis.append('g')
     .classed('axis', true)
-    .attr('transform', _this.translate(_this.config.padding, _this.config.padding + _this.config.chartHeight - 1))
+    .attr('transform', _this.translate(config.padding, config.padding + config.chartHeight))
     .append('path')
-    .attr('d', 'M0,0L' + (_this.config.chartWidth + 10) + ',0');
+    .attr('stroke-width', 1)
+    .attr('d', 'M0,0L' + (config.chartWidth + 10) + ',0');
 
 
   controlGroup = chart.selectAll('g')
@@ -173,7 +172,7 @@ BarChart.prototype.render = function( element ) {
     .append('g')
     .attr('class', 'control_group')
     .attr('transform', function(d, idx) {
-      return _this.translate(1 + idx * (_this.config.barWidth + _this.config.barSpacing), 0);
+      return _this.translate(1 + idx * (config.barWidth + config.barSpacing), 0);
     });
 
   var cMap = {};
@@ -206,7 +205,7 @@ BarChart.prototype.render = function( element ) {
       .attr('x', 0)
       .attr('y', _this .yScale(cval.cvalue))
       .attr('height', 0.5)
-      .attr('width', _this.config.chartWidth)
+      .attr('width', config.chartWidth)
       .style('fill', '#555');
 
     vis.append('g').attr('class', 'debug')
@@ -217,47 +216,50 @@ BarChart.prototype.render = function( element ) {
     /*
     vis.append('rect')
       .classed('debug', true)
-      .attr('x', _this.config.padding)
-      .attr('y', _this.config.visHeight - 10)
-      .attr('width', _this.config.chartWidth*0.5)
+      .attr('x', config.padding)
+      .attr('y', config.visHeight - 10)
+      .attr('width', config.chartWidth*0.5)
       .attr('height', 4).style('fill', '#DCD');
 
     vis.append('rect')
       .classed('debug', true)
-      .attr('x', _this.config.padding)
-      .attr('y', _this.config.visHeight - 10)
-      .attr('width', _this.config.chartWidth*0.5 * (cval.cvalue/_this.total))
-      .attr('height', 4).style('fill', _this.config.colourFill);
+      .attr('x', config.padding)
+      .attr('y', config.visHeight - 10)
+      .attr('width', config.chartWidth*0.5 * (cval.cvalue/_this.total))
+      .attr('height', 4).style('fill', config.colourFill);
 
     vis.append('text')
       .classed('debug', true)
-      .attr('x', _this.config.padding + _this.config.chartWidth*0.5 + 2)
-      .attr('y', _this.config.visHeight-5).text( cval.cvalue + ' ('+percent +'%)');
+      .attr('x', config.padding + config.chartWidth*0.5 + 2)
+      .attr('y', config.visHeight-5).text( cval.cvalue + ' ('+percent +'%)');
     */
   });
   controlGroup.on('mouseout', function(d) {
     if (! _this.highlightedItems[d.key]) {
-      d3.select(this).select('.bar_current').style('fill', _this.config.colourFill);
+      d3.select(this).select('.bar_current').style('fill', config.colourFill);
     }
     svg.selectAll('.debug').remove();
   });
-  controlGroup.on('click', _this.config.clickFunc);
+  controlGroup.on('click', config.clickFunc);
 
 
   // Build original values
-  controlGroup.each(function(d) {
-    d3.select(this)
-      .append('rect')
-      .attr('class', 'bar_original')
-      .attr('x', 0)
-      .attr('y', _this.yScale(d.value))
-      .attr('width', _this.config.barWidth)
-      .attr('height', (config.chartHeight - _this.yScale(d.value)))
-      .attr('stroke', config.colourOutline)
-      .attr('stroke-width', 0.5)
-      .style('fill', 'None')
-      .style('opacity', 0.4);
-  });
+  if (config.rescaleAxis === false) {
+    console.log('hello');
+    controlGroup.each(function(d) {
+      d3.select(this)
+        .append('rect')
+        .attr('class', 'bar_original')
+        .attr('x', 0)
+        .attr('y', _this.yScale(d.value))
+        .attr('width', config.barWidth)
+        .attr('height', (config.chartHeight - _this.yScale(d.value)))
+        .attr('stroke', config.colourOutline)
+        .attr('stroke-width', 0.5)
+        .style('fill', 'None')
+        .style('opacity', 0.4);
+    });
+  }
 
   // Build current values
   controlGroup.each(function(d) {
@@ -272,10 +274,10 @@ BarChart.prototype.render = function( element ) {
       .attr('class', 'bar_current')
       .attr('x', 0)
       .attr('y', _this.yScale(d.cvalue))
-      .attr('width', _this.config.barWidth)
+      .attr('width', config.barWidth)
       .attr('height', (config.chartHeight - _this.yScale(d.cvalue)))
       //.attr('stroke', function() { return config.colourOutline; })
-      .style('fill', _this.config.colourFill)
+      .style('fill', config.colourFill)
       .style('opacity', 0.8);
   });
 
@@ -285,6 +287,7 @@ BarChart.prototype.render = function( element ) {
 BarChart.prototype.update = function( currentData ) {
   this.currentData = currentData.map(this.config.mapFunc);
   var _this = this;
+  var config = _this.config;
 
   var cMap = {};
   _this.currentData.forEach(function(d) {
@@ -293,15 +296,17 @@ BarChart.prototype.update = function( currentData ) {
 
 
   // === Test start ===
-  var max = 0;
-  this.currentData.forEach(function(d) {
-    if (max < d.value) {
-      max = d.value;
-    }
-  });
-  _this.yScale = d3.scale.linear().domain([max, 0]).range([0, _this.config.chartHeight]);
-  _this.yAxis = d3.svg.axis().scale(_this.yScale).orient('left').ticks(2).tickSize(3).tickFormat(d3.format('s'));
-  d3.select(_this.element).select('.test-test').transition().duration(450).call(_this.yAxis);
+  if (config.rescaleAxis === true) {
+    var max = 0;
+    this.currentData.forEach(function(d) {
+      if (max < d.value) {
+        max = d.value;
+      }
+    });
+    _this.yScale = d3.scale.linear().domain([max, 0]).range([0, config.chartHeight]);
+    _this.yAxis = d3.svg.axis().scale(_this.yScale).orient('left').ticks(2).tickSize(3).tickFormat(d3.format('s'));
+    d3.select(_this.element).select('.test-test').transition().duration(600).call(_this.yAxis);
+  }
   // === Test end ===
 
   d3.select(this.element)
@@ -319,41 +324,11 @@ BarChart.prototype.update = function( currentData ) {
       d3.select(this)
         .select('.bar_current')
         .transition()
-        .duration(_this.config.transitionTime)
+        .duration(config.transitionTime)
         .attr('y', _this.yScale(d.cvalue))
-        .attr('height', function(d) { return _this.config.chartHeight - _this.yScale(d.cvalue); });
+        .attr('height', function(d) { return config.chartHeight - _this.yScale(d.cvalue); });
     });
 };
-
-
-/* Should remove this, doesn't work the way I think it should... */
-/*
-BarChart.prototype.toggleHighlight = function( key ) {
-  var config = this.config;
-  var _this = this;
-  d3.select(this.element)
-    .selectAll('.control_group')
-    .each(function(d) {
-      var control = d3.select(this).select('.control_group_rect');
-
-      if (d.key !== key) {
-        return;
-      }
-
-
-      if (control.style('opacity') <= 0) {
-        d3.select(this).select('.control_group_rect').style('fill', '#EEEEEE').style('opacity', 0.3);
-        d3.select(this).select('.bar_current').style('fill', '#FF8800');
-        _this.highlightedItems[key] = 1;
-      } else {
-        d3.select(this).select('.control_group_rect').style('fill', '#FFFFFF').style('opacity', 0);
-        d3.select(this).select('.bar_current').style('fill', config.colourFill);
-        delete _this.highlightedItems[key];
-      }
-    });
-};
-*/
-
 
 
 BarChart.prototype.setHightlight = function( keys ) {
@@ -377,10 +352,9 @@ BarChart.prototype.setHightlight = function( keys ) {
 };
 
 
-
 BarChart.prototype.reset = function() {
-  var config = this.config;
   var _this = this;
+  var config = _this.config;
 
   _this.highlightedItems = {};
   d3.selectAll('.control_group')

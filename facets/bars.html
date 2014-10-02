@@ -65,10 +65,11 @@
      height: 250,
      barSpacing: 15,
      title: 'Chart with custom mappings',
+     rescaleAxis: false,
      mapFunc: function(d, i) {
        return {
          key: d.label,
-         value: Math.floor(Math.sqrt( d.val)),
+         value: d.val,
          label: d.label + '(' + (i+1) + ')'
        };
      },
