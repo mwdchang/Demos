@@ -20,14 +20,19 @@ var BarChart = function( originalData, currentData, config ) {
     width: 370,
     height: 120,
     margin: 5,
-    padding: 29,
+    padding: 30,
+    paddingLeft: 40,
+    paddingRight: 40,
+    paddingTop: 20,
+    paddingBottom: 20,
     transitionTime:  600,
-    rescaleAxis: true,
+    selectedAlpha: 1.0,
+    unSelectedAlpha: 0.1,
+    axis: 'dynamic',
     mapFunc: function( data, idx ) {
       return {
         key: idx,
-        value: data,
-        label: 'label' + idx
+        value: data
       };
     },
     totalFunc: function( data ) {
@@ -48,25 +53,24 @@ var BarChart = function( originalData, currentData, config ) {
 
 
 
-  // ---------------------------------------------------------------------
-  // | <----------------------------- margin --------------------------> |
-  // | <- margin -> | <--------------- vis -------------> | <- margin -> |
-  // | <- margin -> |                                     | <- margin -> |
-  // | <- margin -> | <- padding -> | chart | <-padding-> | <- margin -> |
-  // | <- margin -> |                                     | <- margin -> |
-  // | <----------------------------- margin --------------------------> |
-  // ---------------------------------------------------------------------
+  // -------------------------------------------------------------------------
+  // | <----------------------------- margin ------------------------------> |
+  // | <- margin -> | <--------------- vis -----------------> | <- margin -> |
+  // | <- margin -> |                                         | <- margin -> |
+  // | <- margin -> | <- padding L-> | chart | <- padding R-> | <- margin -> |
+  // | <- margin -> |                                         | <- margin -> |
+  // | <----------------------------- margin ------------------------------> |
+  // -------------------------------------------------------------------------
   config.visWidth  = config.width - 2.0 * config.margin;
   config.visHeight = config.height - 2.0 * config.margin;
-  config.chartWidth  = config.visWidth - 2.0 * config.padding;
-  config.chartHeight = config.visHeight - 2.0 * config.padding;
+  config.chartWidth  = config.visWidth - (config.paddingLeft + config.paddingRight);
+  config.chartHeight = config.visHeight - (config.paddingTop + config.paddingBottom);
 
 
   //            __________           __________                 __________
   // | <- s -> | <- B1 -> | <- s -> | <- B2 -> | ... | <- s -> | <- BN -> |
   // ----------------------------------------------------------------------
   config.barWidth = (config.chartWidth - originalData.length * config.barSpacing) / (originalData.length);
-  //config.barWidth = Math.max( config.barWidth, 2.0 );
   config.barWidth = Math.max( config.barWidth, 1.0 );
 
   // Helper functions
@@ -78,7 +82,6 @@ var BarChart = function( originalData, currentData, config ) {
   this.originalData = originalData.map(config.mapFunc); // Normalize
   this.currentData = currentData.map(config.mapFunc);   // Normalize
 
-  // TODO: temp
   var max = 0;
   this.originalData.forEach(function(d) {
     if (max < d.value) {
@@ -92,12 +95,10 @@ var BarChart = function( originalData, currentData, config ) {
 
   // This looks like it is reversed but it is not, SVG coord has origin (0, 0) at top-left
   // but the chart has origin at bottom-left.
-  //this.yScale = d3.scale.linear().domain([d3.max(originalData), 0]).range([0, config.chartHeight]);
   this.yScale = d3.scale.linear().domain([max, 0]).range([0, config.chartHeight]);
   this.yAxis = d3.svg.axis().scale(this.yScale).orient('left').ticks(2).tickSize(3).tickFormat(d3.format('s'));
 
 
-  // Finish up initialization
   this.config = config;
 };
 
@@ -121,8 +122,6 @@ var BarChart = function( originalData, currentData, config ) {
 //
 ////////////////////////////////////////////////////////////////////////////////
 BarChart.prototype.render = function( element ) {
-  //console.log(this.config, this.originalData, this.currentData);
-
   var _this = this;
   var config = _this.config;
   var svg, vis, chart, controlGroup, title, axis;
@@ -137,7 +136,7 @@ BarChart.prototype.render = function( element ) {
     .attr('height', config.visHeight)
     .style('fill', '#FFFFFF');
 
-  chart = vis.append('g').attr('transform', _this.translate(config.padding, config.padding));
+  chart = vis.append('g').attr('transform', _this.translate(config.paddingLeft, config.paddingTop));
   chart.append('rect')
     .attr('width', config.chartWidth)
     .attr('height', config.chartHeight)
@@ -145,25 +144,32 @@ BarChart.prototype.render = function( element ) {
 
 
   title = vis.append('g')
-    .attr('transform', _this.translate(2, 11))
+    .attr('transform', _this.translate(config.paddingLeft + 0.5*config.chartWidth, 11))
     .append('text')
-    .classed('bar-title', true)
+    .attr('text-anchor', 'middle')
+    .classed('graph_title', true)
     .text(config.title);
 
 
   vis.append('g')
     .classed('axis', true)
-    .classed('test-test', true)
-    .attr('transform', _this.translate(config.padding, config.padding))
+    .classed('bar_axis', true)
+    .attr('transform', _this.translate(config.paddingLeft, config.paddingTop))
     .call(_this.yAxis);
 
   // This will do for x-axis for now
   vis.append('g')
     .classed('axis', true)
-    .attr('transform', _this.translate(config.padding, config.padding + config.chartHeight))
+    .attr('transform', _this.translate(config.paddingLeft, config.paddingTop + config.chartHeight))
     .append('path')
     .attr('stroke-width', 1)
     .attr('d', 'M0,0L' + (config.chartWidth + 10) + ',0');
+
+  vis.append('g')
+    .attr('transform', _this.translate(5, config.paddingLeft + 0.75*config.chartHeight) + " rotate(-90)")
+    .append('text')
+    .classed('graph_axis', true)
+    .text('# Donors');
 
 
   controlGroup = chart.selectAll('g')
@@ -193,96 +199,122 @@ BarChart.prototype.render = function( element ) {
 
 
   // User interaction
-  controlGroup.on('mouseover', function() {
+  controlGroup.on('mouseover', function(d) {
     var cval = d3.select(this).select('.bar_current').datum();
-    // var percent = Math.round( 1000*cval.cvalue / _this.total ) / 10;
+    // var percent = Math.round( 1000*cval.value / _this.total ) / 10;
 
-    d3.select(this).select('.bar_current').style('fill', '#FF8800');
-    // d3.select(this).style('fill', '#FF8800');
+    controlGroup.selectAll('.bar_current')
+      .style('opacity', function(n) {
+        if ( _this.highlightedItems[n.key] || n.key === d.key) {
+          return config.selectedAlpha;
+        } else {
+          return config.unSelectedAlpha;
+        }
+      });
 
     chart.append('rect')
       .classed('debug', true)
       .attr('x', 0)
-      .attr('y', _this .yScale(cval.cvalue))
+      .attr('y', _this.yScale(cval.value))
       .attr('height', 0.5)
       .attr('width', config.chartWidth)
-      .style('fill', '#555');
+      .style('fill', '#888');
 
     vis.append('g').attr('class', 'debug')
-      .attr('transform', _this.translate(config.padding, config.visHeight-5))
+      .attr('transform', _this.translate(config.paddingLeft, config.paddingTop + config.chartHeight + config.paddingBottom - 2))
       .append('text')
-      .text(cval.label);
+      .text(config.labelFunc(d));
 
     /*
     vis.append('rect')
       .classed('debug', true)
-      .attr('x', config.padding)
+      .attr('x', config.paddingLeft)
       .attr('y', config.visHeight - 10)
       .attr('width', config.chartWidth*0.5)
       .attr('height', 4).style('fill', '#DCD');
 
     vis.append('rect')
       .classed('debug', true)
-      .attr('x', config.padding)
+      .attr('x', config.paddingLeft)
       .attr('y', config.visHeight - 10)
-      .attr('width', config.chartWidth*0.5 * (cval.cvalue/_this.total))
+      .attr('width', config.chartWidth*0.5 * (cval.value/_this.total))
       .attr('height', 4).style('fill', config.colourFill);
 
     vis.append('text')
       .classed('debug', true)
-      .attr('x', config.padding + config.chartWidth*0.5 + 2)
-      .attr('y', config.visHeight-5).text( cval.cvalue + ' ('+percent +'%)');
+      .attr('x', config.paddingLeft + config.chartWidth*0.5 + 2)
+      .attr('y', config.visHeight-5).text( cval.value + ' ('+percent +'%)');
     */
   });
   controlGroup.on('mouseout', function(d) {
     if (! _this.highlightedItems[d.key]) {
-      d3.select(this).select('.bar_current').style('fill', config.colourFill);
+      d3.select(this).select('.bar_current').style('fill', d.colourFill);
     }
+
+    controlGroup.selectAll('.bar_current').style('opacity', function(n) {
+      if ( _.isEmpty(_this.highlightedItems) || _this.highlightedItems[n.key]) {
+        return config.selectedAlpha;
+      } else {
+        return config.unSelectedAlpha;
+      }
+    });
+
     svg.selectAll('.debug').remove();
   });
   controlGroup.on('click', config.clickFunc);
 
 
   // Build original values
-  if (config.rescaleAxis === false) {
-    console.log('hello');
+  if (config.axis === 'static') {
+    console.log('render orig');
     controlGroup.each(function(d) {
       d3.select(this)
         .append('rect')
         .attr('class', 'bar_original')
         .attr('x', 0)
         .attr('y', _this.yScale(d.value))
+        .attr('ry', 1)
         .attr('width', config.barWidth)
         .attr('height', (config.chartHeight - _this.yScale(d.value)))
         .attr('stroke', config.colourOutline)
         .attr('stroke-width', 0.5)
         .style('fill', 'None')
-        .style('opacity', 0.4);
+        .style('opacity', 0.3);
     });
+  } else {
+    var max = 0;
+    this.currentData.forEach(function(d) {
+      if (max < d.value) {
+        max = d.value;
+      }
+    });
+    _this.yScale = d3.scale.linear().domain([max, 0]).range([0, config.chartHeight]);
+    _this.yAxis = d3.svg.axis().scale(_this.yScale).orient('left').ticks(2).tickSize(3).tickFormat(d3.format('s'));
+    d3.select(_this.element).select('.bar_axis').transition().duration(600).call(_this.yAxis);
+
   }
 
   // Build current values
   controlGroup.each(function(d) {
     if ( ! cMap[d.key]) {
-      d.cvalue = 0;
+      d.value = 0;
     } else {
-      d.cvalue = cMap[d.key].value;
+      d.value = cMap[d.key].value;
     }
 
     d3.select(this)
       .append('rect')
       .attr('class', 'bar_current')
       .attr('x', 0)
-      .attr('y', _this.yScale(d.cvalue))
+      .attr('y', _this.yScale(d.value))
+      .attr('ry', 1)
       .attr('width', config.barWidth)
-      .attr('height', (config.chartHeight - _this.yScale(d.cvalue)))
-      //.attr('stroke', function() { return config.colourOutline; })
-      .style('fill', config.colourFill)
+      .attr('height', (config.chartHeight - _this.yScale(d.value)))
+      .style('fill', d.colourFill)
       .style('opacity', 0.8);
   });
 
 };
-
 
 BarChart.prototype.update = function( currentData ) {
   this.currentData = currentData.map(this.config.mapFunc);
@@ -295,8 +327,7 @@ BarChart.prototype.update = function( currentData ) {
   });
 
 
-  // === Test start ===
-  if (config.rescaleAxis === true) {
+  if (config.axis === 'dynamic') {
     var max = 0;
     this.currentData.forEach(function(d) {
       if (max < d.value) {
@@ -305,9 +336,8 @@ BarChart.prototype.update = function( currentData ) {
     });
     _this.yScale = d3.scale.linear().domain([max, 0]).range([0, config.chartHeight]);
     _this.yAxis = d3.svg.axis().scale(_this.yScale).orient('left').ticks(2).tickSize(3).tickFormat(d3.format('s'));
-    d3.select(_this.element).select('.test-test').transition().duration(600).call(_this.yAxis);
+    d3.select(_this.element).select('.bar_axis').transition().duration(600).call(_this.yAxis);
   }
-  // === Test end ===
 
   d3.select(this.element)
     .selectAll('.control_group')
@@ -315,9 +345,9 @@ BarChart.prototype.update = function( currentData ) {
 
       // update
       if (cMap[d.key]) {
-        d.cvalue = cMap[d.key].value;
+        d.value = cMap[d.key].value;
       } else {
-        d.cvalue = 0;
+        d.value = 0;
       }
 
       // display
@@ -325,32 +355,28 @@ BarChart.prototype.update = function( currentData ) {
         .select('.bar_current')
         .transition()
         .duration(config.transitionTime)
-        .attr('y', _this.yScale(d.cvalue))
-        .attr('height', function(d) { return config.chartHeight - _this.yScale(d.cvalue); });
+        .attr('y', _this.yScale(d.value))
+        .attr('height', function(d) { return config.chartHeight - _this.yScale(d.value); });
     });
 };
 
-
 BarChart.prototype.setHightlight = function( keys ) {
-  var config = this.config;
-  var _this = this;
+  var _this = this, config = _this.config;
+
   d3.select(this.element)
     .selectAll('.control_group')
     .each(function(d) {
-      // var control = d3.select(this).select('.control_group_rect');
-
-      if (_.contains(keys, d.key)) {
-        d3.select(this).select('.control_group_rect').style('fill', '#EEEEEE').style('opacity', 0.3);
-        d3.select(this).select('.bar_current').style('fill', '#FF8800');
-        _this.highlightedItems[d.key] = 1;
+      if ( keys.length === 0 || _.contains(keys, d.key)) {
+        d3.select(this).select('.bar_current').style('opacity', config.selectedAlpha);
+        if (keys.length > 0) {
+          _this.highlightedItems[d.key] = 1;
+        }
       } else {
-        d3.select(this).select('.control_group_rect').style('fill', '#FFFFFF').style('opacity', 0);
-        d3.select(this).select('.bar_current').style('fill', config.colourFill);
+        d3.select(this).select('.bar_current').style('opacity', config.unSelectedAlpha);
         delete _this.highlightedItems[d.key];
       }
     });
 };
-
 
 BarChart.prototype.reset = function() {
   var _this = this;
@@ -360,7 +386,7 @@ BarChart.prototype.reset = function() {
   d3.selectAll('.control_group')
     .each(function() {
       d3.select('.control_group_rect').style('fill', 'none').style('opacity', 0);
-      d3.select('.bar_current').style('fill', config.colourFill);
+      d3.select('.bar_current').style('fill', d.colourFill).style('opacity', config.selectedAlpha);
     });
 };
 
@@ -370,4 +396,3 @@ BarChart.prototype.destroy = function() {
   this.originalData = null;
   d3.select(this.element).remove();
 };
-
