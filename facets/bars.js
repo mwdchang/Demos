@@ -25,7 +25,8 @@ var BarChart = function( originalData, currentData, config ) {
     paddingRight: 40,
     paddingTop: 20,
     paddingBottom: 20,
-    transitionTime:  600,
+    updateTransitionTime: 600,
+    selectTransitionTime: 150,
     selectedAlpha: 1.0,
     unSelectedAlpha: 0.1,
     axis: 'dynamic',
@@ -166,7 +167,7 @@ BarChart.prototype.render = function( element ) {
     .attr('d', 'M0,0L' + (config.chartWidth + 10) + ',0');
 
   vis.append('g')
-    .attr('transform', _this.translate(5, config.paddingLeft + 0.75*config.chartHeight) + " rotate(-90)")
+    .attr('transform', _this.translate(5, config.paddingTop + config.chartHeight) + " rotate(-90)")
     .append('text')
     .classed('graph_axis', true)
     .text('# Donors');
@@ -204,6 +205,8 @@ BarChart.prototype.render = function( element ) {
     // var percent = Math.round( 1000*cval.value / _this.total ) / 10;
 
     controlGroup.selectAll('.bar_current')
+      .transition()
+      .duration(config.selectTransitionTime)
       .style('opacity', function(n) {
         if ( _this.highlightedItems[n.key] || n.key === d.key) {
           return config.selectedAlpha;
@@ -251,7 +254,10 @@ BarChart.prototype.render = function( element ) {
       d3.select(this).select('.bar_current').style('fill', d.colourFill);
     }
 
-    controlGroup.selectAll('.bar_current').style('opacity', function(n) {
+    controlGroup.selectAll('.bar_current')
+      .transition()
+      .duration(config.selectTransitionTime)
+      .style('opacity', function(n) {
       if ( _.isEmpty(_this.highlightedItems) || _this.highlightedItems[n.key]) {
         return config.selectedAlpha;
       } else {
@@ -290,7 +296,7 @@ BarChart.prototype.render = function( element ) {
     });
     _this.yScale = d3.scale.linear().domain([max, 0]).range([0, config.chartHeight]);
     _this.yAxis = d3.svg.axis().scale(_this.yScale).orient('left').ticks(2).tickSize(3).tickFormat(d3.format('s'));
-    d3.select(_this.element).select('.bar_axis').transition().duration(600).call(_this.yAxis);
+    d3.select(_this.element).select('.bar_axis').transition().duration(config.updateTransitionTime).call(_this.yAxis);
 
   }
 
@@ -336,7 +342,7 @@ BarChart.prototype.update = function( currentData ) {
     });
     _this.yScale = d3.scale.linear().domain([max, 0]).range([0, config.chartHeight]);
     _this.yAxis = d3.svg.axis().scale(_this.yScale).orient('left').ticks(2).tickSize(3).tickFormat(d3.format('s'));
-    d3.select(_this.element).select('.bar_axis').transition().duration(600).call(_this.yAxis);
+    d3.select(_this.element).select('.bar_axis').transition().duration(config.updateTransitionTime).call(_this.yAxis);
   }
 
   d3.select(this.element)
@@ -354,7 +360,7 @@ BarChart.prototype.update = function( currentData ) {
       d3.select(this)
         .select('.bar_current')
         .transition()
-        .duration(config.transitionTime)
+        .duration(config.updateTransitionTime)
         .attr('y', _this.yScale(d.value))
         .attr('height', function(d) { return config.chartHeight - _this.yScale(d.value); });
     });
@@ -370,6 +376,8 @@ BarChart.prototype.setHightlight = function( keys ) {
         d3.select(this).select('.bar_current').style('opacity', config.selectedAlpha);
         if (keys.length > 0) {
           _this.highlightedItems[d.key] = 1;
+        } else {
+          delete _this.highlightedItems[d.key];
         }
       } else {
         d3.select(this).select('.bar_current').style('opacity', config.unSelectedAlpha);
