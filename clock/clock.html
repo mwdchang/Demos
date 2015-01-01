@@ -1,0 +1,180 @@
+<html>
+<head>
+<!--
+<script src="http://d3js.org/d3.v3.min.js"></script>
+-->
+<script src="d3.v3.min.js"></script>
+<style>
+body {
+   margin: 1rem;
+   background-color: #112233;
+}
+</style>
+</head>
+<body>
+<svg id="canvas" width="600" height="600"></svg>
+</body>
+<script>
+var width = 400, height = 400;
+var svg = d3.select('#canvas').attr('width', width).attr('height', height)
+  .append('g')
+  .attr('transform', 'translate(' + 0.5*width + ',' + 0.5*height + ')');
+
+var arcSeconds = d3.svg.arc().innerRadius(110).outerRadius(120);
+var arcMinutes = d3.svg.arc().innerRadius(90).outerRadius(102);
+var arcHours= d3.svg.arc().innerRadius(70).outerRadius(82);
+
+function seconds2Radians(s) {
+  return 2 * s / 60 * Math.PI; 
+}
+
+function minutes2Radians(s) {
+  return 2 * s / 3600 * Math.PI; 
+}
+
+function hours2Radians(s) {
+  return 2 * s / (12*3600) * Math.PI; 
+}
+
+
+
+var current = new Date();
+
+var seconds = svg.append('path')
+  .datum({
+    startAngle: 0,
+    endAngle: 0
+  })
+  .attr('d', arcSeconds).style('fill', '#88BBEE');
+
+var minutes = svg.append('path')
+  .datum({
+    startAngle: 0,
+    endAngle: 0
+  })
+  .attr('d', arcMinutes).style('fill', '#4477AA');
+
+var hours = svg.append('path')
+  .datum({
+    startAngle: 0,
+    endAngle: 0
+  })
+  .attr('d', arcHours).style('fill', '#224488');
+
+
+var c = svg.append('circle').attr('r', 65).style('fill', '#002266');
+var text = svg.append('text')
+  .attr('text-anchor', 'middle')
+  .attr('alignment-baseline', 'middle')
+  .style('fill', '#EEE')
+  .style('font-family', 'Tahoma'); 
+
+
+for (var i=0; i < 60; i++) {
+  var _secodnStart = seconds2Radians(i);
+  var arc = d3.svg.arc().innerRadius(123).outerRadius(130 + 35*Math.abs(Math.cos(Math.PI*i/ (60/5) ) ))
+    .startAngle( seconds2Radians( (i-0.43)%60))
+    .endAngle( seconds2Radians( (i+0.43)%60));
+
+  svg.append('path')
+    .datum({val: i})
+    .attr('class', 'sec')
+    .attr('d', arc).style('fill', '#88BBEE').style('opacity', 0.05);
+}
+
+setInterval(function() {
+  var now = new Date();
+  var _seconds = now.getSeconds();
+  var _minutes = now.getMinutes();
+  var _hours = now.getHours() % 12;
+
+  var _secondsStart = seconds2Radians((_seconds-1)%60);
+  var _minutesStart = minutes2Radians(_minutes*60 + _seconds);
+  var _hoursStart = hours2Radians(_hours * 60*60 + _minutes*60 + _seconds);
+
+
+  var dateStr = (_hours < 10? '0' + _hours : _hours) + ':' +
+    (now.getMinutes() < 10? '0' + now.getMinutes() : now.getMinutes()) + ':' +
+    (now.getSeconds() < 10? '0' + now.getSeconds() : now.getSeconds());
+
+  if (_seconds === 0) {
+    d3.selectAll('.sec').style('opacity', 0.05);
+  } 
+  d3.selectAll('.sec').filter(function(d) {
+    return d.val <= _seconds;
+  }).transition().duration(300).style('opacity', 1.0);
+
+  seconds.transition().duration(300)
+    .call(arcTweenS, _secondsStart);
+
+  minutes.transition().duration(300)
+    .call(arcTweenM, _minutesStart);
+
+  hours.transition().duration(300)
+    .call(arcTweenH, _hoursStart);
+
+  text.text(dateStr);
+}, 1000);
+
+
+function arcTweenH(transition, hoursStart) {
+  transition.attrTween('d', function(d) {
+
+    var interpolateStart = d3.interpolate(hoursStart, hoursStart + hours2Radians(1));
+
+    return function(t) {
+      d.startAngle = interpolateStart(t) + hours2Radians(20*60);  // inc 1/2 hour
+      d.endAngle = interpolateStart(t) + 2*Math.PI - hours2Radians(20*60);
+
+      return arcHours(d);
+    };
+  });
+}
+
+
+
+function arcTweenM(transition, minutesStart) {
+  transition.attrTween('d', function(d) {
+
+    var interpolateStart = d3.interpolate(minutesStart, minutesStart + minutes2Radians(1));
+
+    return function(t) {
+      d.startAngle = interpolateStart(t) + minutes2Radians(30); 
+      d.endAngle = interpolateStart(t) + 2*Math.PI - minutes2Radians(30);
+
+      return arcMinutes(d);
+    };
+  });
+}
+
+function arcTweenS(transition, secondsStart) {
+  transition.attrTween('d', function(d) {
+
+    var interpolateStart = d3.interpolate(secondsStart, secondsStart + seconds2Radians(1));
+
+    return function(t) {
+      d.startAngle = interpolateStart(t) + seconds2Radians(0.5); 
+      d.endAngle = interpolateStart(t) + 2*Math.PI - seconds2Radians(0.5);
+
+      return arcSeconds(d);
+    };
+  });
+}
+
+
+
+
+
+function arcTween(transition, newAngle) {
+  transition.attrTween('d', function(d) {
+    var interpolate = d3.interpolate(d.endAngle, newAngle);
+
+    return function(t) {
+      d.endAngle = interpolate(t);
+      return arc(d);
+    };
+  });
+}
+
+</script>
+</html>
