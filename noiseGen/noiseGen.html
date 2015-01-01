@@ -22,7 +22,7 @@ function cool(x, y, rings, turb) {
 }
 
 function weird_circle(x, y, rings, turb) {
-   var dist = Math.sqrt( (x - 100)*(x - 100) + (y - 100)*(y - 100));
+   var dist = Math.sqrt( (x - w_2)*(x - w_2) + (y - h_2)*(y - h_2));
    return 150 * (Math.cos( (Math.PI * rings/(dist-80))) + turb * perlin_2D(x, y)); 
 }
 
@@ -48,14 +48,60 @@ function fire(x, y, power) {
 
 
 
+
+function firePalette(x, y, height, width, val) {
+   return d3.rgb( 
+      (height / y) * val, 
+      0.8 * val * (y / height),
+      0.1);
+}
+
+
+function gradientPalette1(x, y, height, width, val) {
+   return d3.rgb(
+      (x/width)*val,
+      (y/height)*val,
+      val
+   );
+}
+
+function test(x, y, height, width, val, val2) {
+   val /= 2;
+   val2 /= 1;
+   return d3.rgb( 
+      (height*0.6 / (y*2)) * val + (x/width)*val2,
+      (0.8 * val * (x / height)) + (y/height)*val2,
+      0.4 + val2);
+
+}
+
+function passThru(x, y, height, width, val) {
+   return d3.rgb(p, p, p);
+}
+
+
+
 for (var x=0; x < w; x++) {
    for (var y=0; y < h; y++) {
       // var p = perlin_2D(x, y) * 100;
       // var p = weird_circle(x, y, 30, 1.2);
-      // var p = cool(x, y, 1.6, 8);
-      var p = fire(x, y, 2.2);
+      //var p = cool(x, y, 1.55, 8);
+      // var p = fire(x, y, 2.2);
       // var p = marble(x, y, 5, 3, 4);
       // var p = wood(x, y, 3.5, 0.15);
+
+      // === Pretty neat
+      // var p = weird_circle(x, y, 30, 1.2) * 0.5 +  fire(x, y, 2.2);
+      // var p = weird_circle(x, y, 30, 1.2) * 0.5 -  marble(x, y, 10, 10, 5)*0.3;
+
+      // var p = wood(x, y, 3.5, 0.18) * 0.80 - marble(x, y, 5, 3, 4)*0.45;
+
+
+      // var p = perlin_2D(x, y) * 100;
+      //var p = fire(x, y, 2.2) * 133 / marble(x, y, 5, 10, 5);
+      var c = weird_circle(x, y, 1.5, 2.2);
+      var p = wood(x, y, 4, 0.18) * 150 / marble(x, y, 5, 10, 5) + c*0.30;
+      var f = fire(x, y, 2.2);
 
       d3.select("#canvas")
         .append("rect")
@@ -64,7 +110,11 @@ for (var x=0; x < w; x++) {
         .attr("width", 1)
         .attr("height", 1)
         .style("fill", function() {
-           return d3.rgb((h/y)*p, p*0.8*(y/h), 0.1);
+           // return passThru(x, y, h, w, p);
+           // return firePalette( x, y, h, w, p);
+           // return gradientPalette1( x, y, h, w, p);
+           return test( x, y, h, w, p, f);
+           // return d3.rgb((h/y)*p, p*0.8*(y/h), 0.1);
         });
    }
 }
