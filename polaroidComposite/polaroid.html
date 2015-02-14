@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html>
+<head>
+<script src="three.min.js"></script>
+<!--<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r70/three.js"></script>-->
+</head>
+
+
+<body id="container">
+</body>
+
+<script id="vertexShader" type="x-shader/x-vertex">
+void main() {
+  gl_Position = vec4( position, 1.0 );
+}
+</script>
+
+<script id="fragmentShader" type="x-shader/x-fragment">
+uniform float isFrame;
+void main()	{
+  // gl_FragColor=vec4(1.5, 0.5, 0.5, 1);
+  vec2 p = gl_FragCoord.xy;
+
+  if (isFrame >= 1.0) {
+    gl_FragColor=vec4(1.0, 1.0, 1.0, 1);
+  } else {
+    gl_FragColor=vec4(0.5, 0.5, 0.5, 1);
+  }
+}
+</script>
+
+<script>
+var container;
+var camera, scene, renderer;
+var width = window.innerWidth;
+var height = window.innerHeight;
+
+container = document.getElementById('container');
+// camera = new THREE.OrthographicCamera( width / - 2, width / 2, height / 2, height / - 2, 1, 1000);
+camera = new THREE.OrthographicCamera(0 , width, height, 0, 1, 1000);
+camera.position.z = 100;
+
+
+renderer = new THREE.WebGLRenderer();
+renderer.setSize(width, height);
+container.appendChild(renderer.domElement);
+
+
+scene = new THREE.Scene();
+scene.add(camera);
+
+
+// create a point light
+/*
+var pointLight = new THREE.PointLight("0xFFFFFF");
+pointLight.position.x = 0;
+pointLight.position.y = 0;
+pointLight.position.z = 130;
+scene.add(pointLight);
+*/
+
+console.log(window.innerWidth, window.innerHeight);
+
+
+/*
+var F1 = { x: 0, y: 0};
+var F2 = { x: 100, y: 100 };
+var geometry = new THREE.Geometry();
+geometry.vertices.push( new THREE.Vector3( F1.x, F1.y, 2 ) );
+geometry.vertices.push( new THREE.Vector3( F2.x, F1.y, 2 ) );
+geometry.vertices.push( new THREE.Vector3( F2.x, F2.y, 2 ) );
+geometry.vertices.push( new THREE.Vector3( F1.x, F2.y, 2 ) );
+geometry.faces.push( new THREE.Face3( 0, 1, 2 ) ); // counter-clockwise winding order
+geometry.faces.push( new THREE.Face3( 0, 2, 3 ) );
+geometry.computeFaceNormals();
+geometry.computeVertexNormals();
+
+var material = new THREE.MeshBasicMaterial({ color: "0xff1100"});
+material.side = THREE.DoubleSide;
+var mesh = new THREE.Mesh( geometry, material );
+mesh = new THREE.Mesh( geometry, new THREE.MeshNormalMaterial());
+mesh.position.x = width/2-50;
+mesh.position.y = height/2-50;
+mesh.rotation.z = 0.25*Math.PI;
+scene.add(mesh);
+*/
+
+
+var tmp = [];
+function dist(x1, y1, x2, y2) {
+  return Math.sqrt( (x1-x2)*(x1-x2) + (y1-y2)*(y1-y2)); 
+}
+
+
+for (var i=0; i < 10; i++) {
+  var px, py, rz, len;
+  rz = Math.random() * (2 * Math.PI) - Math.PI;
+  len = Math.random() * 200 + 50;
+  px = Math.random() * width - 0.5 * width;
+  py = Math.random() * height - 0.5 * height;
+
+  scene.add(createSQ(px, py, rz, len, 1.0));
+  scene.add(createSQ(px, py, rz, len, 0.9));
+  tmp.push({
+     x: px,
+     y: py
+  });
+}
+
+
+
+function createSQ(px, py, rz, len, isFrame) {
+  var mesh, geometry, material;
+  var x1 = 0; 
+  var y1 = 0;
+  var x2 = len;
+  var y2 = len;
+
+  if (isFrame >= 1.0) {
+    x1 += 5; 
+    y1 += 5; 
+    x2 -= 5; 
+    y2 -= 5; 
+  }
+
+  var cx = 0.5 * width;
+  var cy = 0.5 * height;
+
+  var F1 = { x: x1, y: y1 };
+  var F2 = { x: x2, y: y2 };
+
+  geometry = new THREE.Geometry();
+  geometry.vertices.push( new THREE.Vector3( F1.x, F1.y, 2 ) );
+  geometry.vertices.push( new THREE.Vector3( F2.x, F1.y, 2 ) );
+  geometry.vertices.push( new THREE.Vector3( F2.x, F2.y, 2 ) );
+  geometry.vertices.push( new THREE.Vector3( F1.x, F2.y, 2 ) );
+  geometry.faces.push( new THREE.Face3( 0, 1, 2 ) ); // counter-clockwise winding order
+  geometry.faces.push( new THREE.Face3( 0, 2, 3 ) );
+  geometry.computeFaceNormals();
+
+  //material = new THREE.MeshBasicMaterial({ color: "0xff1100"});
+  //mesh = new THREE.Mesh( geometry, new THREE.MeshNormalMaterial());
+
+  var uniforms = {};
+  uniforms.isFrame = {
+    type: 'f', value: isFrame
+  };
+
+  material = new THREE.ShaderMaterial( {
+    uniforms: uniforms,
+    // vertexShader: document.getElementById( 'vertexShader' ).textContent,
+    fragmentShader: document.getElementById( 'fragmentShader' ).textContent
+  });
+  
+  console.log('material', material);
+
+
+  mesh = new THREE.Mesh( geometry, material);
+  mesh.position.x = cx + px;
+  mesh.position.y = cy + py;
+  mesh.rotation.z = rz;
+  return mesh;
+}
+
+
+
+function animate() {
+  requestAnimationFrame(animate);
+  renderer.render(scene, camera);
+}
+
+
+
+
+//animate();
+renderer.render(scene, camera);
+
+// 0) Create frame buffer texture
+// 1) Seed position P1 ... Pn
+// 2) Generate box outline for Pi in colour R
+// 3) Generate box for Pi in colour R'
+// 4) Buffer memory to FBT F 
+// 5) Store image as texture T
+// 6) Super impose F and T such that:
+//      c(u, v) = T(u, v) iff F(u, v) == R'  
+//      c(u, v) = R iff F(u, v) == R
+//      c(u, v) = 0 otherwise
+
+
+</script>
+</html>
