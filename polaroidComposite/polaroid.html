@@ -10,22 +10,48 @@
 </body>
 
 <script id="vertexShader" type="x-shader/x-vertex">
+varying vec2 vUv;
+
 void main() {
-  gl_Position = vec4( position, 1.0 );
+  vUv = uv;
+  gl_Position = projectionMatrix * modelViewMatrix * vec4( position, 1.0 );
+  // gl_Position = vec4( position, 1.0 );
 }
 </script>
 
 <script id="fragmentShader" type="x-shader/x-fragment">
 uniform float isFrame;
 void main()	{
-  // gl_FragColor=vec4(1.5, 0.5, 0.5, 1);
   vec2 p = gl_FragCoord.xy;
 
   if (isFrame >= 1.0) {
+    //gl_FragColor=vec4(1.0, 1.0, 1.0 - p.y/p.x, 1);
     gl_FragColor=vec4(1.0, 1.0, 1.0, 1);
   } else {
     gl_FragColor=vec4(0.5, 0.5, 0.5, 1);
   }
+}
+</script>
+
+<script id="fragment_shader_screen" type="x-shader/x-fragment">
+varying vec2 vUv;
+
+uniform sampler2D tImageTe;
+uniform sampler2D tDiffuse;
+
+void main() {
+  vec4 target = texture2D(tDiffuse, vUv);
+
+  
+  if (target[0] <= 1.0 && target[0] > 0.5) {
+    gl_FragColor = texture2D( tImageTe, vUv );
+  } else if (target[0] <= 0.5 && target[0] > 0.0)  {
+    gl_FragColor = vec4(1.0, 1.0, 1.0, 1);
+  } else {
+    gl_FragColor = vec4(0.0, 0.0, 0.0, 1);
+  }
+  // gl_FragColor = texture2D( tDiffuse, vUv);
+  //gl_FragColor = texture2D( tImageTe, vUv);
 }
 </script>
 
@@ -35,13 +61,58 @@ var camera, scene, renderer;
 var width = window.innerWidth;
 var height = window.innerHeight;
 
+
+// Texture buffer
+var sceneT;
+var textureBuffer = new THREE.WebGLRenderTarget(width, height, { 
+  minFilter: THREE.LinearFilter,
+  magFilter: THREE.NearestFilter,
+  format: THREE.RGBFormat ,
+
+}); 
+
+
+var plane = new THREE.PlaneGeometry(width, height);
+var materialT;
+var quadT;
+var sceneT;
+
+var blah = THREE.ImageUtils.loadTexture('testImg.png');
+
+console.log('blah', blah);
+
+var materialT = new THREE.ShaderMaterial( {
+  uniforms: { 
+    tImageTe: { type: 't',  value: THREE.ImageUtils.loadTexture('IMG_5270.JPG')},
+    tDiffuse: { type: 't', value: textureBuffer}
+  },
+  vertexShader: document.getElementById( 'vertexShader' ).textContent,
+  fragmentShader: document.getElementById( 'fragment_shader_screen' ).textContent,
+  depthWrite: false
+} );
+quad = new THREE.Mesh( plane, materialT );
+quad.position.x = width/2;
+quad.position.y = height/2;
+
+
+
+
+
+
+
 container = document.getElementById('container');
-// camera = new THREE.OrthographicCamera( width / - 2, width / 2, height / 2, height / - 2, 1, 1000);
 camera = new THREE.OrthographicCamera(0 , width, height, 0, 1, 1000);
 camera.position.z = 100;
 
 
-renderer = new THREE.WebGLRenderer();
+sceneT = new THREE.Scene();
+sceneT.add(camera)
+sceneT.add( quad );
+
+
+
+
+renderer = new THREE.WebGLRenderer({antialias: true});
 renderer.setSize(width, height);
 container.appendChild(renderer.domElement);
 
@@ -50,49 +121,13 @@ scene = new THREE.Scene();
 scene.add(camera);
 
 
-// create a point light
-/*
-var pointLight = new THREE.PointLight("0xFFFFFF");
-pointLight.position.x = 0;
-pointLight.position.y = 0;
-pointLight.position.z = 130;
-scene.add(pointLight);
-*/
-
-console.log(window.innerWidth, window.innerHeight);
-
-
-/*
-var F1 = { x: 0, y: 0};
-var F2 = { x: 100, y: 100 };
-var geometry = new THREE.Geometry();
-geometry.vertices.push( new THREE.Vector3( F1.x, F1.y, 2 ) );
-geometry.vertices.push( new THREE.Vector3( F2.x, F1.y, 2 ) );
-geometry.vertices.push( new THREE.Vector3( F2.x, F2.y, 2 ) );
-geometry.vertices.push( new THREE.Vector3( F1.x, F2.y, 2 ) );
-geometry.faces.push( new THREE.Face3( 0, 1, 2 ) ); // counter-clockwise winding order
-geometry.faces.push( new THREE.Face3( 0, 2, 3 ) );
-geometry.computeFaceNormals();
-geometry.computeVertexNormals();
-
-var material = new THREE.MeshBasicMaterial({ color: "0xff1100"});
-material.side = THREE.DoubleSide;
-var mesh = new THREE.Mesh( geometry, material );
-mesh = new THREE.Mesh( geometry, new THREE.MeshNormalMaterial());
-mesh.position.x = width/2-50;
-mesh.position.y = height/2-50;
-mesh.rotation.z = 0.25*Math.PI;
-scene.add(mesh);
-*/
-
-
 var tmp = [];
 function dist(x1, y1, x2, y2) {
   return Math.sqrt( (x1-x2)*(x1-x2) + (y1-y2)*(y1-y2)); 
 }
 
 
-for (var i=0; i < 10; i++) {
+for (var i=0; i < 30; i++) {
   var px, py, rz, len;
   rz = Math.random() * (2 * Math.PI) - Math.PI;
   len = Math.random() * 200 + 50;
@@ -101,10 +136,6 @@ for (var i=0; i < 10; i++) {
 
   scene.add(createSQ(px, py, rz, len, 1.0));
   scene.add(createSQ(px, py, rz, len, 0.9));
-  tmp.push({
-     x: px,
-     y: py
-  });
 }
 
 
@@ -117,10 +148,10 @@ function createSQ(px, py, rz, len, isFrame) {
   var y2 = len;
 
   if (isFrame >= 1.0) {
-    x1 += 5; 
-    y1 += 5; 
-    x2 -= 5; 
-    y2 -= 5; 
+    x1 += 3; 
+    y1 += 3; 
+    x2 -= 3; 
+    y2 -= 3; 
   }
 
   var cx = 0.5 * width;
@@ -152,7 +183,7 @@ function createSQ(px, py, rz, len, isFrame) {
     fragmentShader: document.getElementById( 'fragmentShader' ).textContent
   });
   
-  console.log('material', material);
+  // console.log('material', material);
 
 
   mesh = new THREE.Mesh( geometry, material);
@@ -169,11 +200,27 @@ function animate() {
   renderer.render(scene, camera);
 }
 
+function animateT() {
+  requestAnimationFrame(animate);
+  renderer.render(sceneT, camera);
+}
+
 
 
 
 //animate();
-renderer.render(scene, camera);
+/* renderer.render(scene, camera); */
+
+
+renderer.render(scene, camera, textureBuffer, true);
+//renderer.render(sceneT, camera);
+
+
+setTimeout(function() {
+   renderer.render(sceneT, camera);
+}, 250);
+
+
 
 // 0) Create frame buffer texture
 // 1) Seed position P1 ... Pn
