@@ -37,11 +37,13 @@ void main()	{
 <script id="fragment_shader_screen" type="x-shader/x-fragment">
 varying vec2 vUv;
 
+uniform float width;
+uniform float height;
 uniform sampler2D tImage;
 uniform sampler2D tDiffuse;
 
 vec4 sepia(vec3 c) {
-  float threshold = 0.8;
+  float threshold = 0.95;
   vec3 sepia;
   sepia.r = dot(c, vec3(0.393, 0.769, 0.189));
   sepia.g = dot(c, vec3(0.349, 0.686, 0.168));
@@ -71,7 +73,22 @@ void main() {
   } else if (target[0] <= 0.5 && target[0] > 0.0)  {
     gl_FragColor = vec4(0.8, 0.8, 0.8, 1);
   } else {
-    gl_FragColor = vec4(0.0, 0.0, 0.0, 1);
+    //gl_FragColor = vec4(0.0, 0.0, 0.0, 1);
+    //gl_FragColor = texture2D( tImage, vUv ) * 0.3; 
+
+    vec4 c = vec4(0, 0, 0, 0);
+    float cc = 0.0;
+    for (float x=-5.0; x < 5.0; x+= 1.0) {
+      for (float y=-5.0; y < 5.0; y+= 1.0) {
+        c += texture2D( tImage, vUv.xy + vec2( x/width, y/height));
+        cc += 1.0;
+      }
+    }
+    c /= cc;
+    float blah = (c.r + c.g + c.b)/3.0;
+    c.rgb = vec3(blah, blah, blah);
+
+    gl_FragColor = c;
   }
 }
 </script>
@@ -127,7 +144,7 @@ function renderMaskingBuffer() {
   for (var i=0; i < 25; i++) {
     var px, py, rz, len;
     rz = Math.random() * (2 * Math.PI) - Math.PI;
-    len = Math.random() * 200 + 100;
+    len = Math.random() * 200 + 150;
     px = Math.random() * width - 0.5 * width;
     py = Math.random() * height - 0.5 * height;
   
@@ -196,7 +213,9 @@ function processBuffer(buffer) {
   var materialT = new THREE.ShaderMaterial( {
     uniforms: { 
       tImage: { type: 't',  value: imageData},
-      tDiffuse: { type: 't', value: buffer}
+      tDiffuse: { type: 't', value: buffer},
+      width: { type: 'f', value: width},
+      height: { type: 'f', value: height}
     },
     vertexShader: document.getElementById( 'vertexShader' ).textContent,
     fragmentShader: document.getElementById( 'fragment_shader_screen' ).textContent,
