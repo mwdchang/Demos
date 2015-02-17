@@ -36,108 +36,150 @@ void main()	{
 <script id="fragment_shader_screen" type="x-shader/x-fragment">
 varying vec2 vUv;
 
-uniform sampler2D tImageTe;
+uniform sampler2D tImage;
 uniform sampler2D tDiffuse;
 
 void main() {
+
   vec4 target = texture2D(tDiffuse, vUv);
+  vec2 p = gl_FragCoord.xy;
 
   
   if (target[0] <= 1.0 && target[0] > 0.5) {
-    gl_FragColor = texture2D( tImageTe, vUv );
+    gl_FragColor = texture2D( tImage, vUv );
+    gl_FragColor.rgb *= min(1.0, p.y/500.0);
   } else if (target[0] <= 0.5 && target[0] > 0.0)  {
-    gl_FragColor = vec4(1.0, 1.0, 1.0, 1);
+    gl_FragColor = vec4(0.8, 0.8, 0.8, 1);
   } else {
     gl_FragColor = vec4(0.0, 0.0, 0.0, 1);
+    // gl_FragColor = vec4(p.y/600.0, 0.0, 0.4, 1);
   }
   // gl_FragColor = texture2D( tDiffuse, vUv);
-  //gl_FragColor = texture2D( tImageTe, vUv);
+  //gl_FragColor = texture2D( tImage, vUv);
 }
 </script>
 
 <script>
+
+// Globals
 var container;
-var camera, scene, renderer;
 var width = window.innerWidth;
 var height = window.innerHeight;
-
-
-// Texture buffer
-var sceneT;
-var textureBuffer = new THREE.WebGLRenderTarget(width, height, { 
-  minFilter: THREE.LinearFilter,
-  magFilter: THREE.NearestFilter,
-  format: THREE.RGBFormat ,
-
-}); 
-
-
-var plane = new THREE.PlaneGeometry(width, height);
-var materialT;
-var quadT;
-var sceneT;
-
-var blah = THREE.ImageUtils.loadTexture('testImg.png');
-
-console.log('blah', blah);
-
-var materialT = new THREE.ShaderMaterial( {
-  uniforms: { 
-    tImageTe: { type: 't',  value: THREE.ImageUtils.loadTexture('IMG_5270.JPG')},
-    tDiffuse: { type: 't', value: textureBuffer}
-  },
-  vertexShader: document.getElementById( 'vertexShader' ).textContent,
-  fragmentShader: document.getElementById( 'fragment_shader_screen' ).textContent,
-  depthWrite: false
-} );
-quad = new THREE.Mesh( plane, materialT );
-quad.position.x = width/2;
-quad.position.y = height/2;
+var camera; 
+var scene, scene2; 
+var renderer = new THREE.WebGLRenderer({antialias: true});
 
 
 
 
 
+// Load resource
+var imageData = THREE.ImageUtils.loadTexture('IMG_1751.JPG', {}, start);
 
 
-container = document.getElementById('container');
-camera = new THREE.OrthographicCamera(0 , width, height, 0, 1, 1000);
-camera.position.z = 100;
+function start() {
+  console.log('starting...', imageData);
+
+  // Adjust to fit
+  width = imageData.image.width;
+  height = imageData.image.height;
+
+  /* Just testing  ...  scale by 0.65 */
+  width *= 0.65;
+  height *= 0.65;
 
 
-sceneT = new THREE.Scene();
-sceneT.add(camera)
-sceneT.add( quad );
+  renderer.setSize(width, height);
+  container = document.getElementById('container');
+  container.appendChild(renderer.domElement);
+  
+  camera = new THREE.OrthographicCamera(0 , width, height, 0, 1, 1000);
+  camera.position.z = 100;
+
+  var buffer = renderMaskingBuffer();
+  processBuffer(buffer); 
+}
+
+
+
+function renderMaskingBuffer() {
+  scene = new THREE.Scene();
+  scene.add(camera);
+
+  var spread = [];
+  for (var i=0; i < 30; i++) {
+    var px, py, rz, len;
+    rz = Math.random() * (2 * Math.PI) - Math.PI;
+    len = Math.random() * 200 + 100;
+    px = Math.random() * width - 0.5 * width;
+    py = Math.random() * height - 0.5 * height;
+  
+  
+    while(true) {
+      px = Math.random() * width - 0.5 * width;
+      py = Math.random() * height - 0.5 * height;
+  
+      var tooClose = false;
+      for (var j=0; j < spread.length; j++) {
+        if (dist(spread[j].x, spread[j].y, px, py) < 100) {
+          tooClose = true;
+          break;
+        }
+      }
+      if (tooClose === false) break;
+    }
+  
+    spread.push({
+      x: px,
+      y: py
+    });
+    
+  
+    scene.add(createSQ(px, py, rz, len, 1.0));
+    scene.add(createSQ(px, py, rz, len, 0.9));
+  }
+
+  var textureBuffer = new THREE.WebGLRenderTarget(width, height, { 
+    minFilter: THREE.LinearFilter,
+    magFilter: THREE.NearestFilter,
+    format: THREE.RGBFormat
+  }); 
+  renderer.render(scene, camera, textureBuffer, true);
+  return textureBuffer;
+}
+
+
+
+function processBuffer(buffer) {
+
+  var materialT = new THREE.ShaderMaterial( {
+    uniforms: { 
+      tImage: { type: 't',  value: imageData},
+      tDiffuse: { type: 't', value: buffer}
+    },
+    vertexShader: document.getElementById( 'vertexShader' ).textContent,
+    fragmentShader: document.getElementById( 'fragment_shader_screen' ).textContent,
+    depthWrite: false
+  });
+
+  var plane = new THREE.PlaneGeometry(width, height);
+  var quad = new THREE.Mesh( plane, materialT );
+  quad.position.x = width/2;
+  quad.position.y = height/2;
 
 
 
 
-renderer = new THREE.WebGLRenderer({antialias: true});
-renderer.setSize(width, height);
-container.appendChild(renderer.domElement);
+  scene2 = new THREE.Scene();
+  scene2.add(camera)
+  scene2.add( quad );
+  renderer.render(scene2, camera);
+}
 
 
-scene = new THREE.Scene();
-scene.add(camera);
-
-
-var tmp = [];
 function dist(x1, y1, x2, y2) {
   return Math.sqrt( (x1-x2)*(x1-x2) + (y1-y2)*(y1-y2)); 
 }
-
-
-for (var i=0; i < 30; i++) {
-  var px, py, rz, len;
-  rz = Math.random() * (2 * Math.PI) - Math.PI;
-  len = Math.random() * 200 + 50;
-  px = Math.random() * width - 0.5 * width;
-  py = Math.random() * height - 0.5 * height;
-
-  scene.add(createSQ(px, py, rz, len, 1.0));
-  scene.add(createSQ(px, py, rz, len, 0.9));
-}
-
 
 
 function createSQ(px, py, rz, len, isFrame) {
@@ -169,8 +211,6 @@ function createSQ(px, py, rz, len, isFrame) {
   geometry.faces.push( new THREE.Face3( 0, 2, 3 ) );
   geometry.computeFaceNormals();
 
-  //material = new THREE.MeshBasicMaterial({ color: "0xff1100"});
-  //mesh = new THREE.Mesh( geometry, new THREE.MeshNormalMaterial());
 
   var uniforms = {};
   uniforms.isFrame = {
@@ -183,8 +223,6 @@ function createSQ(px, py, rz, len, isFrame) {
     fragmentShader: document.getElementById( 'fragmentShader' ).textContent
   });
   
-  // console.log('material', material);
-
 
   mesh = new THREE.Mesh( geometry, material);
   mesh.position.x = cx + px;
@@ -199,26 +237,6 @@ function animate() {
   requestAnimationFrame(animate);
   renderer.render(scene, camera);
 }
-
-function animateT() {
-  requestAnimationFrame(animate);
-  renderer.render(sceneT, camera);
-}
-
-
-
-
-//animate();
-/* renderer.render(scene, camera); */
-
-
-renderer.render(scene, camera, textureBuffer, true);
-//renderer.render(sceneT, camera);
-
-
-setTimeout(function() {
-   renderer.render(sceneT, camera);
-}, 250);
 
 
 
