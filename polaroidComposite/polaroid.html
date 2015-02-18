@@ -37,6 +37,7 @@ void main()	{
 <script id="fragment_shader_screen" type="x-shader/x-fragment">
 varying vec2 vUv;
 
+uniform int blurSize;
 uniform float width;
 uniform float height;
 uniform sampler2D tImage;
@@ -56,8 +57,24 @@ vec4 sepia(vec3 c) {
   outColour.a = 1.0;
 
   return outColour;
-  // return vec4(0.0, 0.0, 0.0, 1.0);
 }
+
+vec4 blur(vec2 coord, sampler2D tex, const int threshold) {
+  vec4 o = vec4(0, 0, 0, 1);
+
+  int c = 0;
+  const int t = 13;
+
+  for (int x = -t; x < t; x++ ) {
+    for (int y = -t; y < t; y++ ) {
+      o.rgb += texture2D(tex, coord.xy + vec2( float(x)/width, float(y)/width)).rgb;
+      c++;
+    }
+  }
+  o.rgb /= float(c);
+ return o;
+}
+
 
 void main() {
 
@@ -66,35 +83,57 @@ void main() {
 
   
   if (target.r <= 1.0 && target.r > 0.5) {
-    gl_FragColor = texture2D( tImage, vUv );
+    // gl_FragColor = texture2D( tImage, vUv + vec2(-0.07, 0.01));
+    gl_FragColor = texture2D( tImage, vUv + vec2(-0.07, 0.01));
     gl_FragColor = sepia(gl_FragColor.rgb);
   } else if (target.g <= 1.0 && target.g > 0.5) {
-    gl_FragColor = texture2D( tImage, vUv );
+    gl_FragColor = texture2D( tImage, vUv + vec2(0.05, 0.05));
   } else if (target[0] <= 0.5 && target[0] > 0.0)  {
-    gl_FragColor = vec4(0.8, 0.8, 0.8, 1);
-  } else {
-    //gl_FragColor = vec4(0.0, 0.0, 0.0, 1);
-    //gl_FragColor = texture2D( tImage, vUv ) * 0.3; 
+    vec4 frameC = vec4(0.0, 0.0, 0.0, 1.0) + 0.8 * vec4(0.9, 0.9, 0.9, 0.0) + 0.2 * texture2D( tImage, vUv);
 
-    vec4 c = vec4(0, 0, 0, 0);
-    float cc = 0.0;
-    for (float x=-5.0; x < 5.0; x+= 1.0) {
-      for (float y=-5.0; y < 5.0; y+= 1.0) {
-        c += texture2D( tImage, vUv.xy + vec2( x/width, y/height));
-        cc += 1.0;
-      }
+    // Attemp to distort right edges to give it a shadwy feel
+    vec2 test = vec2(0.002,  0);
+    vec4 testc = texture2D(tDiffuse, vUv + test);
+    if (testc.r == 0.0 && testc.g == 0.0) {
+      frameC /= 1.5;
     }
-    c /= cc;
-    float blah = (c.r + c.g + c.b)/3.0;
-    c.rgb = vec3(blah, blah, blah);
 
+    gl_FragColor = frameC;
+  } else {
+    // Blur
+    vec4 c = blur(vUv, tImage, blurSize);
+
+    // Grey-scale
+    float blah = (c.r + c.g + c.b)/4.0;
+    c.rgb = vec3(blah, blah, blah);
     gl_FragColor = c;
   }
+
+  float lll = p.x / 80.0 - float(int(p.x)/int(80));
+  if (lll < 0.3) {
+    //gl_FragColor = vec4(0.0, 0.0, 0.0, 1);
+    gl_FragColor *= 0.9;
+  }
+  float jjj = p.y / 80.0 - float(int(p.y)/int(80));
+  if (jjj < 0.3) {
+    //gl_FragColor = vec4(0.0, 0.0, 0.0, 1);
+    gl_FragColor *= 0.9;
+  }
+
+  /*
+  float mx = 0.5 * width;
+  float my = 0.5 * height;
+  float dist = sqrt( (mx-(p.x-mx))*(mx-(p.x-mx)) + (my-(p.y-my))*(my-(p.y-my)));
+  float dist2 = sqrt(mx*mx + my*my);
+  */
+
+  //gl_FragColor.rgb *= (1.0 - dist/dist2);
 }
 </script>
 
-<script>
 
+
+<script>
 // Globals
 var container;
 var width = window.innerWidth;
@@ -135,16 +174,15 @@ function start() {
 }
 
 
-
-function renderMaskingBuffer() {
-  scene = new THREE.Scene();
-  scene.add(camera);
-
+function _seed(scene) {
   var spread = [];
   for (var i=0; i < 25; i++) {
     var px, py, rz, len;
-    rz = Math.random() * (2 * Math.PI) - Math.PI;
-    len = Math.random() * 200 + 150;
+
+    //rz = Math.random() * (2 * Math.PI) - Math.PI;
+    rz = Math.random() * (0.75*Math.PI) - 0.75/2.0*Math.PI;
+
+    len = Math.random() * 150 + 100;
     px = Math.random() * width - 0.5 * width;
     py = Math.random() * height - 0.5 * height;
   
@@ -155,7 +193,7 @@ function renderMaskingBuffer() {
   
       var tooClose = false;
       for (var j=0; j < spread.length; j++) {
-        if (dist(spread[j].x, spread[j].y, px, py) < 100) {
+        if (dist(spread[j].x, spread[j].y, px, py) < (width+height)/30.0) {
           tooClose = true;
           break;
         }
@@ -174,16 +212,24 @@ function renderMaskingBuffer() {
       scene.add(createSQ(px, py, rz, len, 0.9));
     } else {
       scene.add(createSQ(px, py, rz, len, 0.8));
+      // scene.add(createSQ(px, py, rz, len, 0.9));
     }
     scene.add(createSQ(px, py, rz, len, 1.0));
-
-    /*
-      scene.add(createSQ(px, py, rz, len, 0.9));
-    } else {
-      scene.add(createSQ(px, py, rz, len, 0.8));
-    }
-    */
   }
+}
+
+
+function seed(scene) {
+  _seed(scene);
+}
+
+
+
+function renderMaskingBuffer() {
+  scene = new THREE.Scene();
+  scene.add(camera);
+
+  seed(scene);
 
   // FIXME If just do width, height it becomes jagged ????? Filter issues?
   var textureBuffer = new THREE.WebGLRenderTarget(2*width, 2*height, { 
@@ -215,7 +261,8 @@ function processBuffer(buffer) {
       tImage: { type: 't',  value: imageData},
       tDiffuse: { type: 't', value: buffer},
       width: { type: 'f', value: width},
-      height: { type: 'f', value: height}
+      height: { type: 'f', value: height},
+      blurSize: { type: 'i', value: 4}
     },
     vertexShader: document.getElementById( 'vertexShader' ).textContent,
     fragmentShader: document.getElementById( 'fragment_shader_screen' ).textContent,
@@ -247,13 +294,13 @@ function createSQ(px, py, rz, len, isFrame) {
   var x1 = 0; 
   var y1 = 0;
   var x2 = len;
-  var y2 = len;
+  var y2 = len + 10;
 
   if (isFrame < 1.0) {
-    x1 += 3; 
-    y1 += 3; 
-    x2 -= 3; 
-    y2 -= 3; 
+    x1 += 4; 
+    y1 += 20; 
+    x2 -= 4; 
+    y2 -= 6; 
   }
 
   var cx = 0.5 * width;
@@ -312,6 +359,6 @@ function animate() {
 //      c(u, v) = R iff F(u, v) == R
 //      c(u, v) = 0 otherwise
 
-
 </script>
+
 </html>
