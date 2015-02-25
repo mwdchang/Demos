@@ -84,12 +84,17 @@ void main() {
   float X = cminX + gl_FragCoord.x * xdist;
   float Y = cminY + gl_FragCoord.y * ydist;
 
-  int result = c_mandelbrot(X, Y, 40);
+  int result = c_mandelbrot(X, Y, 200);
 
   gl_FragColor.rgb = vec3(0, 0, 0);
 
   if (result > 2) {
-    gl_FragColor.rgb += vec3(0.3, sqrt(float(result)/25.0), float(result)/40.0);
+    // gl_FragColor.rgb += vec3(sqrt(float(result))/(cmaxX-cminX), sqrt(abs(cmaxX/float(result))), float(result)/40.0);
+    if (result > 140) {
+      gl_FragColor.rgb = vec3(0, 0, 0);
+    } else {
+      gl_FragColor.rgb += vec3(float(result)/255.0, sin(float(result)/(0.33*3.14))/2.5, 0.5);
+    }
   } else {
     gl_FragColor.rgb = vec3(0, 0, 0);
   }
@@ -151,7 +156,7 @@ var shaderRectRatio = cmaxY/cmaxX;
 
 var _counter = 0;
 
-var counter = 300;
+var counter = 60;
 
 var zoom = 1.0;
 
@@ -161,7 +166,10 @@ window.onmousemove = function(event) {
   mouseX = event.pageX;
   mouseY = height - event.pageY;
   // console.log(mouseX,mouseY);
-}
+};
+
+var revDx = 0, revDy = 0, revZoom = 0; 
+
 window.onclick = function(event) {
 
   var xRatio = (cmaxX - cminX) / width;
@@ -169,13 +177,22 @@ window.onclick = function(event) {
 
   dx = - (xRatio * (mouseX - 0.5*width));
   dy = - (yRatio * (mouseY - 0.5*height));
-
-
+  zoom *= 0.75;
   _counter = counter; // Frames
 
-  zoom *= 0.5;
-  zoom += 0.2;
-}
+  revDx += dx;
+  revDy += dy;
+  revZoom += zoom;
+};
+
+window.onkeyup = function(event) {
+  if (event.keyCode !== 32) return;
+  if (revZoom === 0 || zoom === 1.0) return;
+  dx = -revDx;
+  dy = -revDy;
+  zoom = -revZoom;
+  _counter = counter; // Frames
+};
 
 
 function init() {
@@ -257,7 +274,14 @@ function update() {
     cminY += aspect*(1/counter)*zoom;
  
     _counter --;
-  } 
+  } else {
+    if (zoom < 0) {
+      zoom = 1.0;
+      revZoom = 0;
+      revDx = 0;
+      revDy = 0;
+    }
+  }
   
  
  
