@@ -1,0 +1,291 @@
+<html>
+<head>
+<script src="three.min.js"></script>
+</head>
+<body id="container" style="margin:0">
+</body>
+
+<script id="vertex_shader" type="x-shader/x-vertex">
+void main() {
+  gl_Position = projectionMatrix * modelViewMatrix * vec4( position, 1.0 );
+}
+</script>
+
+<script id="fragment_shader" type="x-shader/x-fragment">
+
+
+
+uniform float width;
+uniform float height;
+
+// Controls the drawing region
+uniform float cminX;
+uniform float cminY;
+uniform float cmaxX;
+uniform float cmaxY;
+
+
+
+// Complex number ADD operation
+vec2 cadd(vec2 a, vec2 b) {
+   return vec2(a.x+b.x, a.y+b.y);
+}
+
+// Complex number SUB operation
+vec2 csub(vec2 a, vec2 b) {
+   return vec2(a.x-b.x, a.y-b.y);
+}
+
+// Complex number MULT operation
+vec2 cmult(vec2 a, vec2 b) {
+   return vec2(
+      a.x*b.x - a.y*b.y,
+      a.x*b.y + a.y*b.x);
+}
+
+// Complex number MODULUS operation
+float cmodulus(vec2 v) {
+   return sqrt( v.x*v.x + v.y*v.y);
+}
+
+
+// Generate a mandelbrod fractal
+int c_mandelbrot(float x, float y, int iter) {
+
+   vec2 cz = vec2(0.0, 0.0);
+   vec2 cc = vec2(x, y);
+
+   // looks cool
+   /*
+   vec2 cz = vec2(0.1, 0.7);
+   vec2 cc = vec2(x, y);
+   */
+
+   int nn = 0;
+   for (int n = 0; n < 9999; n++) { // Get around the issue of must using a constant in loops
+      if (cmodulus(cz) >= 4.0 || n >= iter ) {
+        break;
+      }
+      cz = cmult(cz, cz);
+
+      cz = cadd(cz, cc);
+      nn = n;
+   }
+   return nn >= iter ? 0:nn;
+}
+
+
+
+void main() {
+  vec2 coord = gl_FragCoord.xy;
+
+  float xdist = (cmaxX-cminX)/width;
+  float ydist = (cmaxY-cminY)/height;
+  float X = cminX + gl_FragCoord.x * xdist;
+  float Y = cminY + gl_FragCoord.y * ydist;
+
+  int result = c_mandelbrot(X, Y, 40);
+
+  gl_FragColor.rgb = vec3(0, 0, 0);
+
+  if (result > 2) {
+    gl_FragColor.rgb += vec3(0.3, sqrt(float(result)/25.0), float(result)/40.0);
+  } else {
+    gl_FragColor.rgb = vec3(0, 0, 0);
+  }
+  gl_FragColor.a = 1.0;
+
+ /* 
+  if (gl_FragColor.g < 0.5) {
+    gl_FragColor = vec4(0, 0, 0, 1);
+  } */
+
+
+  /*
+  if (gl_FragColor.r > 0.0) {
+    gl_FragColor.r *= 0.65 * abs(50.0 - mod(coord.y, 100.0)) / (0.05*coord.x);
+  }
+  */
+
+
+}
+</script>
+
+
+
+<script>
+
+// Global
+var width = window.innerWidth;
+var height = window.innerHeight;
+
+var DPR = (window.devicePixelRatio) ? window.devicePixelRatio : 1;
+
+
+// THREE.js stuff
+var container;
+var renderer; 
+var scene;
+var camera;
+var plane;
+var quad;
+var material;
+var uniforms;
+
+
+// Effects
+var px = 0;
+var py = 0;
+var dx = 0;
+var dy = 0;
+
+// Aspect
+var aspect = height/width;
+
+// Mandelbrot
+var cmaxX = px + 2.5;
+var cminX = px -2.5;
+var cmaxY = py + 2.5*aspect;
+var cminY = py -2.5*aspect;
+var shaderRectRatio = cmaxY/cmaxX;
+
+var _counter = 0;
+
+var counter = 300;
+
+var zoom = 1.0;
+
+// Event handlers
+var mouseX, mouseY;
+window.onmousemove = function(event) {
+  mouseX = event.pageX;
+  mouseY = height - event.pageY;
+  // console.log(mouseX,mouseY);
+}
+window.onclick = function(event) {
+
+  var xRatio = (cmaxX - cminX) / width;
+  var yRatio = (cmaxY - cminY) / height;
+
+  dx = - (xRatio * (mouseX - 0.5*width));
+  dy = - (yRatio * (mouseY - 0.5*height));
+
+
+  _counter = counter; // Frames
+
+  zoom *= 0.5;
+  zoom += 0.2;
+}
+
+
+function init() {
+  camera = new THREE.OrthographicCamera(0 , width, height, 0, 1, 1000);
+  camera.position.z = 10;
+
+  renderer = new THREE.WebGLRenderer();
+  renderer.setSize(width, height);
+  renderer.setViewport( 0, 0, width*DPR, height*DPR );
+  
+  
+  container = document.getElementById('container');
+  container.appendChild(renderer.domElement);
+  
+  uniforms = { 
+    px: { type: 'f', value: px },
+    py: { type: 'f', value: py },
+    width: {type: 'f', value: width*DPR},
+    height: {type: 'f', value: height*DPR},
+    cmaxX: { type: 'f', value: cmaxX},
+    cmaxY: { type: 'f', value: cmaxY},
+    cminX: { type: 'f', value: cminX},
+    cminY: { type: 'f', value: cminY}
+  },
+
+  material = new THREE.ShaderMaterial({
+    uniforms: uniforms,
+    vertexShader: document.getElementById( 'vertex_shader' ).textContent,
+    fragmentShader: document.getElementById( 'fragment_shader' ).textContent,
+    depthWrite: false
+  });
+  
+  
+  plane = new THREE.PlaneGeometry(width, height);
+  quad = new THREE.Mesh( plane, material);
+  quad.position.x = width/2;
+  quad.position.y = height/2;
+  
+  scene = new THREE.Scene();
+  scene.add(quad);
+}
+
+
+function update() {
+
+  /*
+  cmaxX += 0.0018;
+  cminX += 0.0018;
+  cmaxY += 0.0018;
+  cminY += 0.0018;
+  */
+
+  if (_counter > 0) {
+    px -= (1/counter) * dx;
+    py -= (1/counter) * dy;
+
+    /*
+    cmaxX = px + 2.5 - (counter - _counter)/counter; 
+    cminX = px - 2.5 + (counter - _counter)/counter;
+    cmaxY = py + aspect*(2.5 - (counter - _counter)/counter);
+    cminY = py - aspect*(2.5 + (counter - _counter)/counter);
+    */
+
+    /*
+    cmaxX = px + (zoom - 1.0*(counter-_counter)/counter); 
+    cminX = px - (zoom - 1.0*(counter-_counter)/counter);
+    cmaxY = py + aspect*(zoom - 1.0*(counter-_counter)/counter); 
+    cminY = py - aspect*(zoom - 1.0*(counter-_counter)/counter);
+    */
+
+    cmaxX -= (1/counter) * dx;
+    cminX -= (1/counter) * dx;
+    cmaxY -= (1/counter) * dy;
+    cminY -= (1/counter) * dy;
+
+    cmaxX -= (1/counter)*zoom;
+    cminX += (1/counter)*zoom;
+    cmaxY -= aspect*(1/counter)*zoom;
+    cminY += aspect*(1/counter)*zoom;
+ 
+    _counter --;
+  } 
+  
+ 
+ 
+
+
+  uniforms.cmaxX.value = cmaxX;
+  uniforms.cminX.value = cminX;
+  uniforms.cmaxY.value = cmaxY;
+  uniforms.cminY.value = cminY;
+}
+
+
+
+function animate() {
+  update();
+  requestAnimationFrame(animate);
+  renderer.render(scene, camera);
+}
+
+init();
+animate();
+
+
+/* 
+ * 1) Adjust cx, cy to center
+ * and/or
+ * 2) Adjust cx, cy to magnify
+ */
+
+</script>
+</html>
