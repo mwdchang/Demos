@@ -1,8 +1,46 @@
 <html>
 <head>
 <script src="three.min.js"></script>
+<style>
+body {
+   margin: 0;
+}
+.info {
+   position:fixed;
+   display: block;
+   top: 30;
+   left: 30;
+   z-index: 10;
+   background: #555;
+   color: #FFF;
+   border-radius: 1rem;
+   border-color: #BBC;
+   border-width: 2;
+   border-style: solid;
+   padding: 1rem;
+   font-family: Tahoma;
+   font-size: 0.9rem;
+   line-height: 1.5rem;
+   opacity: 0.8;
+}
+code {
+   background: #FFF;
+   padding-left: 0.45rem;
+   padding-right: 0.45rem;
+   padding-top: 0.25rem;
+   padding-bottom: 0.25rem;
+   color: #222;
+   border-radius: 0.5rem;
+   margin: 0.25rem;
+}
+</style>
 </head>
 <body id="container" style="margin:0">
+    <div class="info" id="help">
+       <strong>Fractal Explorer.</strong><br>
+       Mouse <code>click</code> to zoom into a region. Use <code>Space</code> key to zoom out. <br>
+       Use <code>h</code> to toggle this help panel.
+    </div>
 </body>
 
 <script id="vertex_shader" type="x-shader/x-vertex">
@@ -67,8 +105,8 @@ int c_mandelbrot(float x, float y, int iter) {
         break;
       }
       cz = cmult(cz, cz);
-
       cz = cadd(cz, cc);
+
       nn = n;
    }
    return nn >= iter ? 0:nn;
@@ -84,19 +122,22 @@ void main() {
   float X = cminX + gl_FragCoord.x * xdist;
   float Y = cminY + gl_FragCoord.y * ydist;
 
-  int result = c_mandelbrot(X, Y, 200);
+  int result = c_mandelbrot(X, Y, 150);
 
   gl_FragColor.rgb = vec3(0, 0, 0);
 
   if (result > 2) {
     // gl_FragColor.rgb += vec3(sqrt(float(result))/(cmaxX-cminX), sqrt(abs(cmaxX/float(result))), float(result)/40.0);
     if (result > 140) {
-      gl_FragColor.rgb = vec3(0, 0, 0);
+      // gl_FragColor.rgb = vec3(0, 0, 0);
+      // float dist = sqrt( (coord.x-0.5*width)*(coord.x-0.5*width) + (coord.y-0.5*height)*(coord.y-0.5*height)) / (0.75*width);
+      // gl_FragColor.rgb = vec3(0.2, dist, 1.0 - dist);
     } else {
-      gl_FragColor.rgb += vec3(float(result)/255.0, sin(float(result)/(0.33*3.14))/2.5, 0.5);
+      gl_FragColor.rgb += vec3(float(result)/35.0, sin(float(result)/(4.33*3.14))/2.5, 0.3*sqrt(float(result)));
     }
   } else {
     gl_FragColor.rgb = vec3(0, 0, 0);
+
   }
   gl_FragColor.a = 1.0;
 
@@ -124,6 +165,7 @@ void main() {
 var width = window.innerWidth;
 var height = window.innerHeight;
 
+
 var DPR = (window.devicePixelRatio) ? window.devicePixelRatio : 1;
 
 
@@ -136,6 +178,10 @@ var plane;
 var quad;
 var material;
 var uniforms;
+
+
+// Control
+var help = true;
 
 
 // Effects
@@ -186,12 +232,25 @@ window.onclick = function(event) {
 };
 
 window.onkeyup = function(event) {
-  if (event.keyCode !== 32) return;
-  if (revZoom === 0 || zoom === 1.0) return;
-  dx = -revDx;
-  dy = -revDy;
-  zoom = -revZoom;
-  _counter = counter; // Frames
+
+  if (event.keyCode !== 32 && event.keyCode !== 72) return;
+
+  if (event.keyCode === 32) {
+    if (revZoom === 0 || zoom === 1.0) return;
+    dx = -revDx;
+    dy = -revDy;
+    zoom = -revZoom;
+    _counter = counter; // Frames
+  }
+  if (event.keyCode === 72) {
+    help = !help;
+    if (help === true) {
+      document.getElementById('help').setAttribute('style', 'display:none');
+    } else {
+      document.getElementById('help').setAttribute('style', 'display:block');
+    }
+  }
+
 };
 
 
@@ -237,13 +296,6 @@ function init() {
 
 
 function update() {
-
-  /*
-  cmaxX += 0.0018;
-  cminX += 0.0018;
-  cmaxY += 0.0018;
-  cminY += 0.0018;
-  */
 
   if (_counter > 0) {
     px -= (1/counter) * dx;
@@ -294,14 +346,18 @@ function update() {
 }
 
 
-
 function animate() {
   update();
   requestAnimationFrame(animate);
-  renderer.render(scene, camera);
+
+  // Check if dirty
+  if (_counter !== 0) {
+    renderer.render(scene, camera);
+  }
 }
 
 init();
+renderer.render(scene, camera);
 animate();
 
 
