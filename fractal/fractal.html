@@ -87,6 +87,36 @@ float cmodulus(vec2 v) {
 }
 
 
+
+// Generate a julia fractal
+int c_julia(float x, float y, int iter) {
+   vec2 cz = vec2(x, y);
+   vec2 cc = vec2(0.4, 0.369);
+   
+   int nn = 0;
+   for (int n = 0; n < 9999; n++) { // Get around the issue of must using a constant in loops
+      if (cmodulus(cz) >= 4.0 || n >= iter ) {
+        break;
+      }
+      cz = cmult(cz, cz);
+      cz = cadd(cz, cc);
+
+      nn = n;
+   }
+   return nn >= iter ? 0:nn;
+
+   /*
+   while (n < iter && cmodulus( cz ) < 4.0) {
+      cz = cmult(cz, cz);
+      cz = cadd(cz, cc);
+      n++;
+   }
+   return n > iter ? 0:n;
+   */
+}
+
+
+
 // Generate a mandelbrod fractal
 int c_mandelbrot(float x, float y, int iter) {
 
@@ -122,7 +152,7 @@ void main() {
   float X = cminX + gl_FragCoord.x * xdist;
   float Y = cminY + gl_FragCoord.y * ydist;
 
-  int result = c_mandelbrot(X, Y, 150);
+  int result = c_julia(X, Y, 150);
 
   gl_FragColor.rgb = vec3(0, 0, 0);
 
@@ -258,7 +288,7 @@ function init() {
   camera = new THREE.OrthographicCamera(0 , width, height, 0, 1, 1000);
   camera.position.z = 10;
 
-  renderer = new THREE.WebGLRenderer();
+  renderer = new THREE.WebGLRenderer({precision:'highp'});
   renderer.setSize(width, height);
   renderer.setViewport( 0, 0, width*DPR, height*DPR );
   
