@@ -8,7 +8,6 @@
 <script id="vertex_shader" type="x-shader/x-vertex">
 void main() {
   gl_Position = projectionMatrix * modelViewMatrix * vec4( position, 1.0 );
-  // gl_Position = vec4( position, 1.0 );
 }
 </script>
 
@@ -45,6 +44,9 @@ void main() {
     } else {
       gl_FragColor.rgb = vec3(colR*(d/r), 0.0, colB*d/r);
     }
+
+    gl_FragColor.rgb *= 2.2;
+
   } else {
     gl_FragColor.rgb = vec3(0, 0, 0);
   }
@@ -82,6 +84,17 @@ var cy = height / 2.0;
 var r = 100;
 var dx1 = Math.random() * 5.0;
 var dy1 = Math.random() * 5.0;
+
+
+var mouseX = 0, mouseY = 0, moved = false;
+
+window.onmousemove = function(event) {
+  mouseX = event.pageX;
+  mouseY = height - event.pageY;
+  moved = 5;
+  // console.log(mouseX,mouseY);
+};
+
 
 
 function createCircle() {
@@ -198,6 +211,37 @@ function update() {
   uniforms.cx.value = cx * DPR;
   uniforms.cy.value = cy * DPR;
   */
+
+
+  if (moved > 0) {
+    circles.forEach(function(c) {
+      var pushX = -(mouseX - c.cx);
+      var pushY = -(mouseY - c.cy);
+      var dist = Math.sqrt(pushX*pushX + pushY*pushY);
+      
+      var rate = (120 - dist);
+      if (rate < 0) return;
+
+      rate *= 0.0025;
+
+      /*
+      c.cx += pushX*rate;
+      c.cy += pushY*rate;
+      */
+
+      c.dx = -(mouseX - c.cx) * 0.075;
+      c.dy = -(mouseY - c.cy) * 0.075;
+
+
+      if (c.cx >= width) c.cx = width;
+      if (c.cx <= 0) c.cx = 0;
+      if (c.cy >= height ) c.cy = height;
+      if (c.cy <= 0) c.cy = 0;
+
+    });
+  }
+
+  moved --;
 
   circles.forEach(function(c) {
     c.cx += c.dx;
